@@ -51,7 +51,10 @@ export const listActivity = (params) => api.get(`${B}/activity${qs(params)}`);
 
 // ---------- customers ----------
 export const listCustomers = (params) => api.get(`${B}/customers${qs(params)}`);
-export const getCustomer = (id) => api.get(`${B}/customers/${id}`);
+/** Customer plus `summary` ({ orders, billed, paid, outstanding, credit_due, refund_due, refunded, last_order_at, credit_limit }) and `recent_orders`. */
+export const getCustomer = (id, params) => api.get(`${B}/customers/${id}${qs(params)}`);
+/** Paged orders of one customer, plus `summary`. */
+export const listCustomerOrders = (id, params) => api.get(`${B}/customers/${id}/orders${qs(params)}`);
 export const createCustomer = (body) => api.post(`${B}/customers`, body);
 export const updateCustomer = (id, body) => api.patch(`${B}/customers/${id}`, body);
 
@@ -70,6 +73,18 @@ export const shippingRates = (id, body) => api.post(`${B}/orders/${id}/shipping-
 /** { provider, courier_id?, package? } */
 export const bookShipment = (id, body) => api.post(`${B}/orders/${id}/shipments`, body);
 
+// ---------- refunds (records only; no gateway call) ----------
+/** { status, store_id, order_id, from, to, search, page, limit } → paged + `summary` ({ [status]: { count, amount } }). */
+export const listRefunds = (params) => api.get(`${B}/refunds${qs(params)}`);
+export const getRefund = (id) => api.get(`${B}/refunds/${id}`);
+/** { amount? (defaults to the refundable balance), reason, method, notes } */
+export const createRefund = (orderId, body) => api.post(`${B}/orders/${orderId}/refunds`, body);
+export const approveRefund = (id, body) => api.post(`${B}/refunds/${id}/approve`, body || {});
+/** { reason } */
+export const rejectRefund = (id, reason) => api.post(`${B}/refunds/${id}/reject`, { reason });
+/** { reference, method?, notes? } */
+export const payRefund = (id, body) => api.post(`${B}/refunds/${id}/pay`, body);
+
 // ---------- invoices ----------
 export const listInvoices = (params) => api.get(`${B}/invoices${qs(params)}`);
 export const invoicePdfUrl = (id) => `${B}/invoices/${id}/pdf`;
@@ -87,4 +102,5 @@ export const setShipmentStatus = (id, body) => api.post(`${B}/shipments/${id}/st
 export const reportSales = (params) => api.get(`${B}/reports/sales${qs(params)}`);
 export const reportTopProducts = (params) => api.get(`${B}/reports/top-products${qs(params)}`);
 export const reportLowStock = (params) => api.get(`${B}/reports/low-stock${qs(params)}`);
+/** { from, to, store_id, franchise_id } - franchise_id matches the order's franchise at placement. */
 export const reportStaff = (params) => api.get(`${B}/reports/staff${qs(params)}`);

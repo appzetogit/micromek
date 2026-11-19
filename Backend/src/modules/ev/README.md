@@ -26,6 +26,7 @@ Admin (`adminGuard('ev_fleet.view')`):
 |---|---|---|
 | GET | /admin/ev/provider | provider, capabilities, webhook config, rule settings, last poll |
 | POST | /admin/ev/poll-now | run one poll now and return its summary |
+| GET | /admin/ev/lookups | link pickers: `type=driver\|fleet_vehicle\|service_location`, `search` or `id` → `[{ id, label }]` (max 20). Labels: driver name · phone · vehicleNumber (deleted drivers skipped), plate · brand model, location name |
 | GET | /admin/ev/dashboard | counts, charging, low battery, offline, avg SOC/SOH, live alerts, map points. `?franchise_id=&service_location_id=` |
 | POST | /admin/ev/vehicles/sync | import the vendor's vehicle list (`?dry_run=true`) |
 | GET/POST | /admin/ev/vehicles | list (`search, status, charging=true, low_battery=true, franchise_id, page, limit`) / create |

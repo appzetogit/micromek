@@ -87,6 +87,19 @@ export const normalizeCommission = (commission = {}) => {
   return result;
 };
 
+export const normalizeFareMultipliers = (input = {}) => {
+  const out = {};
+  for (const key of ['taxi', 'delivery', 'intercity']) {
+    if (input[key] === undefined || input[key] === null || input[key] === '') continue;
+    const value = Number(input[key]);
+    if (!Number.isFinite(value) || value < 0.5 || value > 2) {
+      throw new ApiError(400, `fare_multipliers.${key} must be between 0.5 and 2 (1 = platform price)`);
+    }
+    out[key] = Math.round(value * 1000) / 1000;
+  }
+  return out;
+};
+
 export const ruleFor = (franchise, transportType) => {
   const byType = franchise.commission?.by_transport_type;
   const specific = byType instanceof Map ? byType.get(transportType) : byType?.[transportType];

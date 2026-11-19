@@ -120,7 +120,7 @@ const listVehicles = (scopeOf) => asyncHandler(async (req, res) => {
 const getVehicle = (scopeOf) => asyncHandler(async (req, res) => {
   const vehicle = await getVehicleInScope(assertObjectId(req.params.id, 'vehicle id'), scopeOf(req));
   await vehicle.populate([
-    { path: 'driver_id', select: 'name phone' },
+    { path: 'driver_id', select: 'name phone vehicleNumber' },
     { path: 'franchise_id', select: 'name code' },
     { path: 'service_location_id', select: 'name' },
     { path: 'fleet_vehicle_id', select: 'license_plate_number car_brand car_model' },
@@ -147,6 +147,53 @@ const telemetryHistory = (scopeOf) => asyncHandler(async (req, res) => {
   if (end - start > 92 * 86400000) throw new ApiError(400, 'History range is limited to 92 days');
   const history = await getTelemetryHistory(vehicle._id, { start, end, bucket: req.query.bucket ? String(req.query.bucket) : 'auto' });
   return ok(res, { vehicle_id: vehicle._id, from: start, to: end, ...history });
+});
+
+// ---------------------------------------------------------------- link pickers
+
+/// Search configs for GET /admin/ev/lookups?type=&search=&id=. Read-only over the taxi models.
+const LOOKUPS = {
+  driver: {
+    model: Driver,
+    base: { deletedAt: null },
+    fields: ['name', 'phone', 'vehicleNumber'],
+    select: 'name phone vehicleNumber',
+    sort: { name: 1 },
+    label: (d) => [d.name, d.phone, d.vehicleNumber].filter(Boolean).join(' · '),
+  },
+  fleet_vehicle: {
+    model: FleetVehicle,
+    base: {},
+    fields: ['license_plate_number', 'car_brand', 'car_model'],
+    select: 'license_plate_number car_brand car_model',
+    sort: { license_plate_number: 1 },
+    label: (v) => [v.license_plate_number, [v.car_brand, v.car_model].filter(Boolean).join(' ')].filter(Boolean).join(' · '),
+  },
+  service_location: {
+    model: ServiceLocation,
+    base: {},
+    fields: ['name', 'service_location_name'],
+    select: 'name service_location_name',
+    sort: { name: 1 },
+    label: (l) => l.name || l.service_location_name,
+  },
+};
+export const EV_LOOKUP_TYPES = Object.keys(LOOKUPS);
+
+/// [{ id, label }], at most 20. `id` returns just that record (to label a saved link).
+export const adminLookups = asyncHandler(async (req, res) => {
+  const type = String(req.query.type || '');
+  const cfg = LOOKUPS[type];
+  if (!cfg) throw new ApiError(400, `type must be one of ${EV_LOOKUP_TYPES.join(', ')}`);
+  let filter = { ...cfg.base };
+  if (req.query.id) {
+    filter = { _id: assertObjectId(req.query.id, 'id') };
+  } else if (req.query.search && String(req.query.search).trim()) {
+    const rx = new RegExp(escapeRx(String(req.query.search).trim().slice(0, 60)), 'i');
+    filter.$or = cfg.fields.map((f) => ({ [f]: rx }));
+  }
+  const docs = await cfg.model.find(filter).select(cfg.select).sort(cfg.sort).limit(20).lean();
+  return ok(res, docs.map((d) => ({ id: String(d._id), label: cfg.label(d) || String(d._id) })));
 });
 
 export const adminCreateVehicle = asyncHandler(async (req, res) => {

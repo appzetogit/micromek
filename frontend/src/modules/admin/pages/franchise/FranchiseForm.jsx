@@ -24,6 +24,7 @@ const blankForm = () => ({
     default: emptyRule(),
     overrides: Object.fromEntries(TRANSPORT_TYPES.map((t) => [t, { enabled: false, ...emptyRule() }])),
   },
+  fare_multipliers: Object.fromEntries(TRANSPORT_TYPES.map((t) => [t, '1'])),
   settlement_cycle: 'monthly', contract_start: '', contract_end: '', status: 'approved',
 });
 
@@ -46,6 +47,7 @@ const toForm = (f) => {
         t, byType[t] ? { enabled: true, ...byType[t] } : { enabled: false, ...emptyRule() },
       ])),
     },
+    fare_multipliers: Object.fromEntries(TRANSPORT_TYPES.map((t) => [t, String(f.fare_multipliers?.[t] ?? 1)])),
     contract_start: day(f.contract_start),
     contract_end: day(f.contract_end),
   };
@@ -53,11 +55,12 @@ const toForm = (f) => {
 
 /** Form state → request body. */
 const toBody = (form, isEdit) => {
-  const { commission, password, code, status, contract_start: cs, contract_end: ce, ...rest } = form;
+  const { commission, fare_multipliers: fares, password, code, status, contract_start: cs, contract_end: ce, ...rest } = form;
   const body = {
     ...rest,
     contract_start: cs || null,
     contract_end: ce || null,
+    fare_multipliers: Object.fromEntries(Object.entries(fares).map(([t, v]) => [t, Number(v)])),
     commission: {
       default: { type: commission.default.type, value: Number(commission.default.value) },
       by_transport_type: Object.fromEntries(
@@ -84,6 +87,9 @@ const validate = (form, isEdit) => {
   const rules = [form.commission.default, ...Object.values(form.commission.overrides).filter((r) => r.enabled)];
   if (rules.some((r) => r.value === '' || Number(r.value) < 0 || Number(r.value) > 100)) {
     return 'Commission values must be between 0 and 100';
+  }
+  if (Object.values(form.fare_multipliers).some((v) => v === '' || !(Number(v) >= 0.5 && Number(v) <= 2))) {
+    return 'Fare multipliers must be between 0.5 and 2 (1 = platform price)';
   }
   if (form.contract_start && form.contract_end && form.contract_end < form.contract_start) {
     return 'Contract end must be after contract start';
@@ -269,6 +275,25 @@ const FranchiseFormBody = ({ id, initial }) => {
               <Field label="Contract end"><input type="date" value={form.contract_end} min={form.contract_start || undefined} onChange={set('contract_end')} className={inputClass} /></Field>
             </div>
           </div>
+        </Card>
+
+        <Card title="Fares in this territory" subtitle="Multiplier on the platform tariff (1 = platform price, 0.5–2)" icon={Percent}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {TRANSPORT_TYPES.map((t) => {
+              const v = Number(form.fare_multipliers[t]);
+              const hint = !(v > 0) || v === 1 ? 'Platform price' : `${v > 1 ? '+' : ''}${Math.round((v - 1) * 100)}% vs platform`;
+              return (
+                <Field key={t} label={<span className="capitalize">{t}</span>} hint={hint}>
+                  <Input
+                    type="number" min="0.5" max="2" step="0.05"
+                    value={form.fare_multipliers[t]}
+                    onChange={(e) => setForm((f) => ({ ...f, fare_multipliers: { ...f.fare_multipliers, [t]: e.target.value } }))}
+                  />
+                </Field>
+              );
+            })}
+          </div>
+          <p className="mt-3 text-xs text-gray-400">Applies to rider quotes and parcel prices in this franchise's cities and zones once it is approved. Admin price screens keep showing the platform tariff.</p>
         </Card>
 
         <Card title="Bank details" subtitle="Used for settlement payouts" icon={Landmark}>

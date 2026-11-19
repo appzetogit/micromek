@@ -1,0 +1,132 @@
+import { adminToken, check, imp, start } from './harness.mjs';
+
+process.env.EV_PROVIDER = 'mock';
+process.env.EV_MOCK_VEHICLES = '5';
+process.env.EV_WEBHOOK_SECRET = 'whsec';
+const { call, stop, mongoose } = await start();
+const admin = await adminToken(mongoose);
+const noPerm = await adminToken(mongoose, { subadmin: true, permissions: ['users.view'] });
+
+console.log('ev admin');
+const prov = await call('GET', '/admin/ev/provider', { token: admin });
+check('provider is mock + enabled', prov.status === 200 && JSON.stringify(prov.body).includes('mock'), prov.body);
+const sync = await call('POST', '/admin/ev/vehicles/sync', { token: admin });
+check('sync imports 5 mock vehicles', sync.status === 200, sync.body);
+const list = await call('GET', '/admin/ev/vehicles', { token: admin });
+check('5 vehicles listed', list.body.data?.total === 5, list.body);
+const resync = await call('POST', '/admin/ev/vehicles/sync', { token: admin });
+const list2 = await call('GET', '/admin/ev/vehicles', { token: admin });
+check('re-sync does not duplicate', resync.status === 200 && list2.body.data?.total === 5);
+
+const poll = await call('POST', '/admin/ev/poll-now', { token: admin });
+check('poll-now runs', poll.status === 200, poll.body);
+const poll2 = await call('POST', '/admin/ev/poll-now', { token: admin });
+check('second poll ok', poll2.status === 200, poll2.body);
+
+const { EvTelemetry } = await imp('src/modules/ev/models/EvTelemetry.js');
+const colls = await mongoose.connection.db.listCollections({ name: EvTelemetry.collection.collectionName }).toArray();
+check('telemetry is a time-series collection', colls[0]?.type === 'timeseries', colls[0]);
+const points = await EvTelemetry.countDocuments();
+check('telemetry points written (no dup for same timestamp)', points > 0 && points <= 5, points);
+
+const dash = await call('GET', '/admin/ev/dashboard', { token: admin });
+check('dashboard 200', dash.status === 200, dash.body);
+console.log('   dashboard:', JSON.stringify(dash.body.data).slice(0, 300));
+const v0 = list.body.data.items[0];
+const detail = await call('GET', `/admin/ev/vehicles/${v0._id}`, { token: admin });
+check('vehicle detail has last telemetry', detail.status === 200 && JSON.stringify(detail.body).includes('soc_pct'), detail.body);
+const hist = await call('GET', `/admin/ev/vehicles/${v0._id}/telemetry`, { token: admin });
+check('telemetry history 200', hist.status === 200, hist.body);
+const alerts = await call('GET', '/admin/ev/alerts', { token: admin });
+check('alerts list 200', alerts.status === 200, alerts.body);
+console.log('   alerts:', alerts.body.data?.total, JSON.stringify(alerts.body.data?.items?.map((a) => a.type)));
+const util = await call('GET', '/admin/ev/reports/utilisation', { token: admin });
+check('utilisation 200', util.status === 200, util.body);
+const trips = await call('GET', '/admin/ev/trips', { token: admin });
+check('trips 200', trips.status === 200, trips.body);
+
+const bad = await call('GET', '/admin/ev/vehicles', { token: noPerm });
+check('no permission 403', bad.status === 403);
+const { EvVehicle } = await imp('src/modules/ev/models/EvVehicle.js');
+await EvVehicle.init();
+const create = await call('POST', '/admin/ev/vehicles', { token: admin, body: { registration_no: 'mp09ab1234', provider: 'mock', external_id: 'X1' } });
+check('manual create', create.status === 201, create.body);
+const dup = await call('POST', '/admin/ev/vehicles', { token: admin, body: { registration_no: 'MP09AB1234', provider: 'mock', external_id: 'X2' } });
+check('duplicate registration 409', dup.status === 409, dup.body);
+
+console.log('webhook');
+const wh0 = await call('POST', '/webhooks/ev/mock', { body: {} });
+check('webhook without secret 401/403', [401, 403].includes(wh0.status), wh0);
+const wh1 = await call('POST', '/webhooks/ev/mock', { body: { points: [] }, headers: { 'x-ev-webhook-secret': 'whsec' } });
+check('webhook with secret accepted (202)', wh1.status === 202, wh1.body);
+const low = { external_id: 'X1', recorded_at: new Date(Date.now() - 1000).toISOString(), soc_pct: 8, charging_state: 'not_charging', speed_kmh: 0, location: { lat: 22.7, lng: 75.8 } };
+const wh2 = await call('POST', '/webhooks/ev/mock', { body: low, headers: { 'x-ev-webhook-secret': 'whsec' } });
+check('webhook point ingested + critical alert raised', wh2.status === 202 && wh2.body.data.written === 1 && wh2.body.data.alerts_raised >= 1, wh2.body);
+const wh3 = await call('POST', '/webhooks/ev/mock', { body: { ...low, recorded_at: new Date().toISOString(), soc_pct: 7 }, headers: { 'x-ev-webhook-secret': 'whsec' } });
+check('same open alert not raised again', wh3.body.data.alerts_raised === 0, wh3.body);
+const al = await call('GET', '/admin/ev/alerts?status=open', { token: admin });
+const crit = al.body.data.items.find((a) => a.type === 'critical_battery');
+check('critical alert listed', !!crit, al.body.data.items.map((a) => a.type));
+const ack = await call('POST', `/admin/ev/alerts/${crit?._id}/acknowledge`, { token: admin });
+check('acknowledge', ack.status === 200, ack.body);
+const wh4 = await call('POST', '/webhooks/ev/mock', { body: { ...low, recorded_at: new Date(Date.now() + 1000).toISOString(), soc_pct: 60 }, headers: { 'x-ev-webhook-secret': 'whsec' } });
+check('recovered SOC auto-resolves', wh4.body.data.alerts_resolved >= 1, wh4.body);
+const wrongSecret = await call('POST', '/webhooks/ev/mock', { body: low, headers: { 'x-ev-webhook-secret': 'nope' } });
+check('wrong secret 401', wrongSecret.status === 401);
+
+console.log('alert notifications');
+const { bus } = await imp('src/modules/shared/events.js');
+const { toEvAlertPayload } = await imp('src/modules/integrations/evAlertNotifications.js');
+check('admin notifier listens for raised alerts', bus.listenerCount('ev.alert.raised') >= 1);
+const pl = toEvAlertPayload({ alert: { _id: 'a1', type: 'critical_battery', severity: 'critical', message: 'MP09 battery critical at 8%', value: 8 }, vehicle: { _id: 'v1', registration_no: 'MP09', franchise_id: 'f1' } });
+check('socket payload names the vehicle and severity', pl.id === 'a1' && pl.severity === 'critical' && pl.vehicle.registrationNo === 'MP09' && pl.vehicle.franchiseId === 'f1', pl);
+
+console.log('franchise scope');
+const { Franchise } = await imp('src/modules/franchise/models/Franchise.js');
+const f = await call('POST', '/admin/franchises', { token: admin, body: { name: 'EV Fr', contact_name: 'A', mobile: '9100000001', email: 'ev@t.io', password: 'password1' } });
+const fid = f.body.data._id;
+const link = await call('PATCH', `/admin/ev/vehicles/${v0._id}`, { token: admin, body: { franchise_id: fid } });
+check('link vehicle to franchise', link.status === 200, link.body);
+const login = await call('POST', '/franchise/auth/login', { body: { email: 'ev@t.io', password: 'password1' } });
+const ftok = login.body.data.token;
+const fl = await call('GET', '/franchise/ev/vehicles', { token: ftok });
+check('franchise sees only its 1 vehicle', fl.body.data?.total === 1, fl.body);
+const other = list.body.data.items[1];
+const fo = await call('GET', `/franchise/ev/vehicles/${other._id}`, { token: ftok });
+check("franchise can't open another vehicle", fo.status === 404, fo.body);
+const fw = await call('PATCH', `/franchise/ev/vehicles/${v0._id}`, { token: ftok, body: { status: 'inactive' } });
+check('franchise cannot edit (no route)', fw.status === 404 || fw.status === 403, fw.status);
+const fme = await call('GET', '/franchise/me', { token: ftok });
+check('franchise panel still works after EV router', fme.status === 200);
+void Franchise;
+
+console.log('link pickers');
+const { Driver } = await imp('src/modules/taxi/driver/models/Driver.js');
+const { FleetVehicle } = await imp('src/modules/taxi/admin/models/FleetVehicle.js');
+const { ServiceLocation } = await imp('src/modules/taxi/admin/models/ServiceLocation.js');
+const drvId = (await Driver.collection.insertOne({ name: 'Ravi Kumar', phone: '9888800001', vehicleNumber: 'MP09EV0001', deletedAt: null })).insertedId;
+await Driver.collection.insertOne({ name: 'Ravi Gone', phone: '9888800002', vehicleNumber: 'X', deletedAt: new Date() });
+const fvId = (await FleetVehicle.collection.insertOne({ license_plate_number: 'MP09EV0002', car_brand: 'Tata', car_model: 'Nexon EV', active: true })).insertedId;
+const slId = (await ServiceLocation.collection.insertOne({ name: 'Indore', service_location_name: 'Indore City' })).insertedId;
+const lk = (q) => call('GET', `/admin/ev/lookups?${q}`, { token: admin });
+const ld = await lk('type=driver&search=ravi');
+check('driver lookup → [{id,label}] with name, phone, vehicle number; deleted skipped', ld.status === 200 && ld.body.data.length === 1
+  && ld.body.data[0].id === String(drvId) && ld.body.data[0].label === 'Ravi Kumar · 9888800001 · MP09EV0001', ld.body);
+const ldv = await lk('type=driver&search=ev0001');
+check('driver lookup matches vehicle number', ldv.body.data?.[0]?.id === String(drvId), ldv.body);
+const lf = await lk('type=fleet_vehicle&search=nexon');
+check('fleet vehicle lookup label = plate · brand model', lf.body.data?.[0]?.label === 'MP09EV0002 · Tata Nexon EV', lf.body);
+const ls = await lk('type=service_location&search=ind');
+check('service location lookup label = name', ls.body.data?.[0]?.label === 'Indore' && ls.body.data[0].id === String(slId), ls.body);
+const lid = await lk(`type=fleet_vehicle&id=${fvId}`);
+check('lookup by id labels a saved link', lid.body.data?.length === 1 && lid.body.data[0].id === String(fvId), lid.body);
+const lall = await lk('type=driver');
+check('lookup without search lists (≤ 20)', lall.status === 200 && lall.body.data.length >= 1 && lall.body.data.length <= 20, lall.body);
+check('bad lookup type 400', (await lk('type=user')).status === 400);
+check('lookups need ev_fleet.view', (await call('GET', '/admin/ev/lookups?type=driver', { token: noPerm })).status === 403);
+const linkAll = await call('PATCH', `/admin/ev/vehicles/${other._id}`, { token: admin, body: { driver_id: String(drvId), fleet_vehicle_id: String(fvId), service_location_id: String(slId) } });
+check('picked ids save as links', linkAll.status === 200 && String(linkAll.body.data.driver_id) === String(drvId), linkAll.body);
+const clear = await call('PATCH', `/admin/ev/vehicles/${other._id}`, { token: admin, body: { driver_id: null, fleet_vehicle_id: '' } });
+check('links can be cleared', clear.status === 200 && clear.body.data.driver_id === null && clear.body.data.fleet_vehicle_id === null && String(clear.body.data.service_location_id) === String(slId), clear.body);
+
+await stop();

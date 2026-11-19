@@ -7,9 +7,11 @@ import { env } from './config/env.js';
 import { errorHandler, notFoundHandler } from './modules/taxi/middlewares/errorMiddleware.js';
 import { taxiRouter } from './modules/taxi/routes/index.js';
 import { platformRouter } from './modules/platformRouter.js';
+import { registerIntegrations } from './modules/integrations/index.js';
 
 export const createApp = () => {
   const app = express();
+  registerIntegrations();
 
 app.use(
   cors({

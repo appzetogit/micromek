@@ -36,9 +36,25 @@ Stock moves with the order:
 - `cancelled` releases the reservation.
 - `returned` puts the units back on the shelf.
 
-Each of these steps first flips `stock_state` atomically, so retries cannot apply it twice. A cancel or return of a paid order sets `payment.status = refund_due`. Refunds are manual.
+Each of these steps first flips `stock_state` atomically, so retries cannot apply it twice. A cancel or return of a paid order sets `payment.status = refund_due` and opens a refund record (see Refunds).
 
 Online orders cannot be confirmed until they are paid. Unpaid ones are cancelled after `COMMERCE_PAYMENT_TIMEOUT_MINUTES`.
+
+## Refunds
+
+`CommerceRefund` (`models/Refund.js`, `services/refundService.js`) records money owed back on an order: amount, reason, method (`original|cash|upi|bank_transfer|store_credit`), who requested / approved / rejected / paid it and when, and the payment reference.
+
+- Status: `requested → approved → paid`, or `requested|approved → rejected` (a reason is required). Marking paid requires a `reference`.
+- A cancel or return of an order with payments (and an online payment that lands after the order expired) creates a `requested` refund for the unrefunded balance automatically (`auto: true`; requested by whoever changed the status, or `system`).
+- Admins can add refunds by hand, e.g. a partial refund on a delivered order. `amount` defaults to the refundable balance.
+- Over-refund guard: `order.payment.refund_committed` is the sum of every refund that is not rejected. A refund is created only after a guarded update raises it, and that update refuses to go above `payment.paid_amount`, so concurrent requests cannot exceed what was paid. Rejecting gives the amount back.
+- When a refund is paid, `payment.refunded_amount` grows and `payment.status` becomes `refunded` (refunded ≥ paid) or `partially_refunded`. A `partially_refunded` order no longer accepts `/payments`.
+- Every step is written to the activity log (`refund.request|approve|reject|pay`).
+- **Gateway refunds are not automated.** Nothing calls Razorpay's refund API: refund in the Razorpay dashboard (or pay by cash / UPI / bank) and record the refund id or UTR as the reference.
+
+## Activity log
+
+Rows carry `label`, a readable name for the entity (order number, `SKU · name`, store code, staff / customer name, invoice number, refund `order · amount`). Callers pass it when they already have it; otherwise `logActivity` looks it up off the request path. `GET /activity` fills in labels for older rows without one (one query per entity type) and also filters by `entity` / `entity_id`.
 
 ## Roles
 
@@ -71,7 +87,7 @@ Online orders cannot be confirmed until they are paid. Unpaid ones are cancelled
 **Staff** (`/commerce/staff`, Bearer token from login; role `commerce_staff`)
 `POST /auth/login` `{mobile|email, password}`, `GET /me`, `POST /me/password`, `GET /stores`, `GET /products`,
 `GET /inventory`, `GET /inventory/movements`, `POST /inventory/adjust {store_id, product_id, delta, reason}`, `POST /inventory/transfer {from_store_id, to_store_id, product_id, qty}`, `POST /inventory/reorder-level`,
-`GET|POST /customers`, `GET|PATCH /customers/:id`,
+`GET|POST /customers`, `GET|PATCH /customers/:id` (adds `summary` and `recent_orders`), `GET /customers/:id/orders`,
 `GET /orders`, `POST /orders` (manual entry: `{store_id, customer_id, items:[{product_id, qty, unit_price?, discount?}], type, channel: whatsapp|phone|pos|lead, fulfilment, ship_to|address_id, payment_method: cash|credit, shipping, due_date}`; starts as `confirmed`),
 `GET /orders/:id`, `POST /orders/:id/status {status, note}`, `POST /orders/:id/payments {amount, method, reference}`, `POST /orders/:id/invoice`,
 `POST /orders/:id/shipping-rates {provider?, package?}`, `POST /orders/:id/shipments {provider, courier_id?, package?}`,
@@ -85,7 +101,9 @@ Online orders cannot be confirmed until they are paid. Unpaid ones are cancelled
 - inventory: `GET /inventory`, `GET /inventory/movements`, `POST /inventory/adjust|transfer|reorder-level`
 - staff: `GET|POST /staff`, `PATCH|DELETE /staff/:id`
 - customers, orders, invoices and shipments: the same routes as the staff panel, across all stores
-- reports: `GET /reports/sales?group=day|store|franchise|channel|type&from&to&store_id&franchise_id`, `/reports/top-products`, `/reports/low-stock`, `/reports/staff`
+- customer history: `GET /customers/:id` returns the customer plus `summary` (`orders, billed_orders, billed, paid, outstanding, credit_due, refund_due, refunded, last_order_at, credit_limit`; cancelled / returned orders are not billed) and the latest `recent_orders` (`?orders_limit`, default 10). `GET /customers/:id/orders?page&limit&status&payment_status` pages them. On the staff panel both only count orders in the caller's stores.
+- refunds: `GET /refunds?status&store_id&order_id&customer_id&franchise_id&from&to&search` (paged, plus `summary` per status), `GET /refunds/:id`, `POST /refunds/:id/approve`, `POST /refunds/:id/reject {reason}`, `POST /refunds/:id/pay {reference, method?, notes?}`, `GET|POST /orders/:id/refunds {amount?, reason, method, notes}`. `GET /orders/:id` includes `refunds`.
+- reports: `GET /reports/sales?group=day|store|franchise|channel|type&from&to&store_id&franchise_id`, `/reports/top-products`, `/reports/low-stock`, `/reports/staff?from&to&store_id&franchise_id`. On every report `franchise_id` matches the order's `franchise_id` (the store's franchise when the order was placed), not the store's current franchise.
 - activity log: `GET /activity`
 
 **Franchise** (`/franchise/commerce`, `authenticate(['franchise'])`, business_type commerce|both)
@@ -104,7 +122,7 @@ Online orders cannot be confirmed until they are paid. Unpaid ones are cancelled
 
 Every adapter has the same contract: `{ name, isEnabled(), quoteRates(draft), createShipment(order, draft), track(awb), cancel(shipment|awb), parseWebhook(req) }`. A provider whose env vars are missing answers with a 503 and `code: SHIPPING_PROVIDER_DISABLED`.
 
-- **local_porter**: city delivery. A booking creates the shipment as `pending_assignment`, with pickup = store and drop = customer. Staff move it on with `/shipments/:id/status`. Hook: `setPlatformDeliveryBooker(fn)` (exported from routes/index.js) lets the taxi delivery module create a real Delivery later.
+- **local_porter**: city delivery by the platform's own parcel drivers. With `COMMERCE_LOCAL_VEHICLE_TYPE_ID` set, booking creates a real parcel ride (priced, zoned and dispatched like an app parcel; booked by a per-store account; store pays the fare in cash; a COD amount goes into the driver instructions). Ride progress updates the shipment and order: see `src/modules/integrations/commerceCityDelivery.js`. Store and delivery address need lat/lng. Without the env var, shipments stay `pending_assignment` and staff move them with `/shipments/:id/status`.
 - **shiprocket**: implements `auth/login` (token cached 9 days, re-login on 401), `courier/serviceability`, `orders/create/adhoc`, `courier/assign/awb`, `courier/track/awb/{awb}` and `orders/cancel`.
 - **bigship**: a skeleton. Every `TODO(bigship)` must be checked against BigShip's merchant API docs.
 

@@ -19,6 +19,7 @@ import {
   buildRideTerritoryFilter,
   getFranchiseOr404,
   normalizeCommission,
+  normalizeFareMultipliers,
   parsePaging,
   parsePeriod,
   toObjectIds,
@@ -30,6 +31,7 @@ import {
   refreshSettlement,
   transitionSettlement,
 } from '../services/franchiseSettlementService.js';
+import { clearFranchiseFareCache } from '../services/franchiseFareService.js';
 
 const PROFILE_FIELDS = [
   'name', 'business_type', 'contact_name', 'mobile', 'email', 'address', 'city', 'state',
@@ -174,11 +176,13 @@ export const adminCreateFranchise = asyncHandler(async (req, res) => {
     service_location_ids: serviceLocationIds,
     zone_ids: zoneIds,
     commission: normalizeCommission(body.commission || {}),
+    fare_multipliers: { taxi: 1, delivery: 1, intercity: 1, ...normalizeFareMultipliers(body.fare_multipliers || {}) },
     // Created by an admin, so approved unless asked otherwise.
     status: body.status === FRANCHISE_STATUS.PENDING ? FRANCHISE_STATUS.PENDING : FRANCHISE_STATUS.APPROVED,
     reviewed_by: req.auth.sub,
     reviewed_at: new Date(),
   });
+  clearFranchiseFareCache();
   return ok(res, franchise, 201);
 });
 
@@ -195,6 +199,9 @@ export const adminUpdateFranchise = asyncHandler(async (req, res) => {
   Object.assign(franchise, pick(body, PROFILE_FIELDS));
   if (body.bank) franchise.bank = { ...franchise.bank?.toObject?.(), ...body.bank };
   if (body.commission) franchise.commission = normalizeCommission(body.commission);
+  if (body.fare_multipliers) {
+    franchise.fare_multipliers = { ...(franchise.fare_multipliers?.toObject?.() || franchise.fare_multipliers || {}), ...normalizeFareMultipliers(body.fare_multipliers) };
+  }
   if (body.service_location_ids !== undefined || body.zone_ids !== undefined) {
     const serviceLocationIds = toObjectIds(body.service_location_ids ?? franchise.service_location_ids);
     const zoneIds = toObjectIds(body.zone_ids ?? franchise.zone_ids);
@@ -207,6 +214,7 @@ export const adminUpdateFranchise = asyncHandler(async (req, res) => {
     franchise.password = await hashPassword(body.password);
   }
   await franchise.save();
+  clearFranchiseFareCache();
   return ok(res, franchise);
 });
 
@@ -237,6 +245,7 @@ export const adminSetFranchiseStatus = asyncHandler(async (req, res) => {
   franchise.reviewed_by = req.auth.sub;
   franchise.reviewed_at = new Date();
   await franchise.save();
+  clearFranchiseFareCache();
   return ok(res, franchise);
 });
 
@@ -251,6 +260,7 @@ export const adminDeleteFranchise = asyncHandler(async (req, res) => {
   franchise.service_location_ids = [];
   franchise.zone_ids = [];
   await franchise.save();
+  clearFranchiseFareCache();
   return ok(res, { id: franchise._id, deleted: true });
 });
 
@@ -423,7 +433,7 @@ export const panelFares = asyncHandler(async (req, res) => {
       { zone_id: { $in: franchise.zone_ids } },
     ],
   }).lean();
-  return ok(res, { items, commission: franchise.commission });
+  return ok(res, { items, commission: franchise.commission, fare_multipliers: franchise.fare_multipliers });
 });
 
 export const panelSettlements = asyncHandler(async (req, res) => {

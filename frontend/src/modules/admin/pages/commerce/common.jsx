@@ -19,7 +19,9 @@ export const ORDER_TRANSITIONS = {
 };
 export const ORDER_CHANNELS = ['app', 'whatsapp', 'phone', 'pos', 'lead'];
 export const MANUAL_CHANNELS = ORDER_CHANNELS.filter((c) => c !== 'app');
-export const PAYMENT_STATUSES = ['pending', 'partial', 'paid', 'refund_due', 'refunded'];
+export const PAYMENT_STATUSES = ['pending', 'partial', 'paid', 'refund_due', 'partially_refunded', 'refunded'];
+export const REFUND_STATUSES = ['requested', 'approved', 'paid', 'rejected'];
+export const REFUND_METHODS = ['original', 'cash', 'upi', 'bank_transfer', 'store_credit'];
 export const PAYMENT_METHODS = ['cash', 'online', 'credit'];
 export const ORDER_TYPES = ['retail', 'wholesale'];
 export const SHIPPING_PROVIDERS = [

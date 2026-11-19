@@ -6,6 +6,7 @@ import { CommerceOrder } from '../models/Order.js';
 import { CommerceProduct } from '../models/Product.js';
 import { CommerceStore } from '../models/Store.js';
 import { actorOf, canSetOrderStatus } from './accessService.js';
+import { autoRefundForOrder } from './refundService.js';
 import { commitItems, releaseItems, reserveItems, restockItems } from './inventoryService.js';
 import { canTransition, financialYear, ORDER_TRANSITIONS, priceOrder, round2 } from './pricing.js';
 
@@ -142,11 +143,9 @@ export const transitionOrder = async (req, orderId, to, { note = '', filter = {}
   if (!updated) throw new ApiError(409, 'Order was updated by someone else; reload and retry', { code: 'CONFLICT' });
 
   if (to === 'cancelled' || to === 'returned') {
-    // Separate atomic step so a payment that landed concurrently is still flagged.
-    await CommerceOrder.updateOne(
-      { _id: updated._id, 'payment.paid_amount': { $gt: 0 }, 'payment.status': { $in: ['paid', 'partial'] } },
-      { $set: { 'payment.status': 'refund_due' } },
-    );
+    // Separate atomic step so a payment that landed concurrently is still flagged; it also opens
+    // a CommerceRefund (status requested) for the unrefunded balance.
+    await autoRefundForOrder(req, updated._id, to);
   }
   await applyStockEffects(updated, to, actor);
   emit('commerce.order.status_changed', { order: updated.toObject(), from, to });

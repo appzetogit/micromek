@@ -13,6 +13,7 @@ const activitySchema = new mongoose.Schema(
     action: { type: String, required: true, index: true }, // e.g. order.create, stock.adjust
     entity: { type: String, default: '' },
     entity_id: { type: String, default: '' },
+    label: { type: String, default: '' }, // human name of the entity (order number, SKU, store code, ...)
     meta: { type: mongoose.Schema.Types.Mixed, default: {} },
     ip: { type: String, default: '' },
   },

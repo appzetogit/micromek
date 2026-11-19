@@ -58,6 +58,14 @@ const franchiseSchema = new mongoose.Schema(
       // Per transport type (taxi, delivery, intercity). Falls back to default.
       by_transport_type: { type: Map, of: shareRuleSchema, default: () => new Map() },
     },
+    // This franchise's own price for its territory, as a multiplier on the
+    // platform tariff per transport type (1 = platform price). See
+    // services/franchiseFareService.js for where it is applied.
+    fare_multipliers: {
+      taxi: { type: Number, min: 0.5, max: 2, default: 1 },
+      delivery: { type: Number, min: 0.5, max: 2, default: 1 },
+      intercity: { type: Number, min: 0.5, max: 2, default: 1 },
+    },
     settlement_cycle: { type: String, enum: ['weekly', 'fortnightly', 'monthly'], default: 'monthly' },
     contract_start: { type: Date, default: null },
     contract_end: { type: Date, default: null },

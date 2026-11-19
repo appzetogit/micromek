@@ -41,7 +41,20 @@ Admin (permission `franchises.view`): `GET/POST /admin/franchises`, `GET /admin/
 `GET/POST /admin/franchise-settlements`, `GET /admin/franchise-settlements/:id`,
 `POST /admin/franchise-settlements/:id/{refresh|adjustments|approve|pay|cancel}`.
 
+## Franchise fares
+
+`fare_multipliers: { taxi, delivery, intercity }` (0.5–2, 1 = platform price) prices the
+franchise's territory up or down from the platform tariff. Applied in
+`services/franchiseFareService.js` callers only:
+
+- taxi and intercity: the rider price catalog (`GET /users/set-prices`), which the apps
+  quote from and the booking bills. Stacks with surge. Rows carry
+  `franchise_fare_multiplier`; `price_hike_multiplier` still means surge only.
+- parcels: `resolveDeliveryTariff` (server-priced), base price, per-km and waiting charge.
+
+Admins always see and edit the platform tariff. Only approved franchises count. Changes
+apply at once in the process that saved them and within 30 s in the others (cache TTL).
+
 ## Not done yet
 
-- Fares are read-only in the panel (the zone `SetPrice` rows). Franchise-specific fare overrides would need a change in the pricing path.
 - Driver approval stays with the platform admin.

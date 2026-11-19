@@ -26,6 +26,7 @@ import { getTipSettings } from './appSettingsService.js';
 import { getBidRideSettings } from './transportSettingsService.js';
 import { resolveBiddingPolicy } from './biddingPolicyService.js';
 import { resolveRideRoute } from './routeService.js';
+import { emit } from '../../shared/events.js';
 
 const clearUserActiveRideIfPresent = async (user) => {
   if (!user?.currentRideId) {
@@ -1000,6 +1001,8 @@ const syncDeliveryWithRide = async (ride) => {
   if (!ride || (ride.serviceType || 'ride') !== 'parcel') {
     return null;
   }
+  // Other modules (shop city delivery) follow parcel rides through this.
+  emit('taxi.delivery.updated', { ride: typeof ride.toObject === 'function' ? ride.toObject() : ride });
 
   const payload = {
     rideId: ride._id,

@@ -16,6 +16,7 @@ admin.use(...adminGuard('ev_fleet.view'));
 admin.get('/ev/provider', c.adminProviderStatus);
 admin.post('/ev/poll-now', c.adminPollNow);
 admin.get('/ev/dashboard', c.adminDashboard);
+admin.get('/ev/lookups', c.adminLookups);
 admin.post('/ev/vehicles/sync', c.adminSyncVehicles);
 admin.get('/ev/vehicles', c.adminListVehicles);
 admin.post('/ev/vehicles', c.adminCreateVehicle);

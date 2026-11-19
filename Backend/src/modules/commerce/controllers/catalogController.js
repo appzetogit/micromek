@@ -161,7 +161,7 @@ export const adminGetStore = asyncHandler(async (req, res) => {
 export const adminCreateStore = asyncHandler(async (req, res) => {
   const data = await storePayload(req.body);
   const store = await CommerceStore.create(data).catch((e) => rethrowDuplicate(e, 'Store'));
-  logActivity(req, 'store.create', { store_id: store._id, entity: 'store', entity_id: store._id });
+  logActivity(req, 'store.create', { store_id: store._id, entity: 'store', entity_id: store._id, label: store.code });
   return ok(res, store, 201);
 });
 
@@ -170,7 +170,7 @@ export const adminUpdateStore = asyncHandler(async (req, res) => {
   const store = await CommerceStore.findByIdAndUpdate(assertObjectId(req.params.id), { $set: data }, { returnDocument: 'after', runValidators: true })
     .catch((e) => rethrowDuplicate(e, 'Store'));
   if (!store) throw new ApiError(404, 'Store not found');
-  logActivity(req, 'store.update', { store_id: store._id, entity: 'store', entity_id: store._id, meta: { fields: Object.keys(data) } });
+  logActivity(req, 'store.update', { store_id: store._id, entity: 'store', entity_id: store._id, label: store.code, meta: { fields: Object.keys(data) } });
   return ok(res, store);
 });
 
@@ -180,14 +180,14 @@ export const adminAllocateStore = asyncHandler(async (req, res) => {
   const franchiseId = await resolveFranchise(req.body?.franchise_id ?? null);
   const store = await CommerceStore.findByIdAndUpdate(assertObjectId(req.params.id), { $set: { franchise_id: franchiseId } }, { returnDocument: 'after' });
   if (!store) throw new ApiError(404, 'Store not found');
-  logActivity(req, 'store.allocate', { store_id: store._id, entity: 'store', entity_id: store._id, meta: { franchise_id: franchiseId } });
+  logActivity(req, 'store.allocate', { store_id: store._id, entity: 'store', entity_id: store._id, label: store.code, meta: { franchise_id: franchiseId } });
   return ok(res, store);
 });
 
 export const adminDeactivateStore = asyncHandler(async (req, res) => {
   const store = await CommerceStore.findByIdAndUpdate(assertObjectId(req.params.id), { $set: { active: false } }, { returnDocument: 'after' });
   if (!store) throw new ApiError(404, 'Store not found');
-  logActivity(req, 'store.deactivate', { store_id: store._id, entity: 'store', entity_id: store._id });
+  logActivity(req, 'store.deactivate', { store_id: store._id, entity: 'store', entity_id: store._id, label: store.code });
   return ok(res, store);
 });
 
@@ -209,7 +209,7 @@ export const adminSaveCategory = asyncHandler(async (req, res) => {
     ? await CommerceCategory.findByIdAndUpdate(id, { $set: data }, { returnDocument: 'after', runValidators: true }).catch((e) => rethrowDuplicate(e, 'Category'))
     : await CommerceCategory.create(data).catch((e) => rethrowDuplicate(e, 'Category'));
   if (!category) throw new ApiError(404, 'Category not found');
-  logActivity(req, id ? 'category.update' : 'category.create', { entity: 'category', entity_id: category._id });
+  logActivity(req, id ? 'category.update' : 'category.create', { entity: 'category', entity_id: category._id, label: category.name });
   return ok(res, category, id ? 200 : 201);
 });
 
@@ -233,7 +233,7 @@ export const adminGetProduct = asyncHandler(async (req, res) => {
 
 export const adminCreateProduct = asyncHandler(async (req, res) => {
   const product = await CommerceProduct.create(productPayload(req.body)).catch((e) => rethrowDuplicate(e, 'Product'));
-  logActivity(req, 'product.create', { entity: 'product', entity_id: product._id, meta: { sku: product.sku } });
+  logActivity(req, 'product.create', { entity: 'product', entity_id: product._id, label: `${product.sku} · ${product.name}`, meta: { sku: product.sku } });
   return ok(res, product, 201);
 });
 
@@ -242,14 +242,14 @@ export const adminUpdateProduct = asyncHandler(async (req, res) => {
   const product = await CommerceProduct.findByIdAndUpdate(assertObjectId(req.params.id), { $set: data }, { returnDocument: 'after', runValidators: true })
     .catch((e) => rethrowDuplicate(e, 'Product'));
   if (!product) throw new ApiError(404, 'Product not found');
-  logActivity(req, 'product.update', { entity: 'product', entity_id: product._id, meta: { fields: Object.keys(data) } });
+  logActivity(req, 'product.update', { entity: 'product', entity_id: product._id, label: `${product.sku} · ${product.name}`, meta: { fields: Object.keys(data) } });
   return ok(res, product);
 });
 
 export const adminDeactivateProduct = asyncHandler(async (req, res) => {
   const product = await CommerceProduct.findByIdAndUpdate(assertObjectId(req.params.id), { $set: { active: false } }, { returnDocument: 'after' });
   if (!product) throw new ApiError(404, 'Product not found');
-  logActivity(req, 'product.deactivate', { entity: 'product', entity_id: product._id });
+  logActivity(req, 'product.deactivate', { entity: 'product', entity_id: product._id, label: `${product.sku} · ${product.name}` });
   return ok(res, product);
 });
 

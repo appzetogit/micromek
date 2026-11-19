@@ -3,6 +3,7 @@ import { ApiError } from '../../../utils/ApiError.js';
 import { razorpayApi } from '../../taxi/bus/services/busRefundService.js';
 import { resolveConfiguredGatewayCredentials } from '../../taxi/services/paymentGatewayService.js';
 import { CommerceOrder } from '../models/Order.js';
+import { createRefund } from './refundService.js';
 
 /// Razorpay via the platform's existing gateway config (Admin > Payment Gateways,
 /// resolved by resolveConfiguredGatewayCredentials('razor_pay')) and the shared
@@ -75,10 +76,14 @@ export const verifyRazorpayPayment = async (order, { razorpay_order_id: rpOrderI
   if (fresh.payment.status === 'paid' && fresh.payment.razorpay_payment_id === rpPaymentId) return fresh;
   if (fresh.status === 'cancelled') {
     // Paid after the reservation expired: keep the money on record for a refund.
-    await CommerceOrder.updateOne(
+    const flagged = await CommerceOrder.updateOne(
       { _id: order._id, 'payment.status': 'pending' },
       { $set: { 'payment.status': 'refund_due', 'payment.paid_amount': order.totals.grand_total, 'payment.razorpay_payment_id': rpPaymentId }, $push: { 'payment.entries': entry } },
     );
+    if (flagged.modifiedCount) {
+      await createRefund(null, await CommerceOrder.findById(order._id).lean(), { reason: 'Paid after the order expired', auto: true })
+        .catch((error) => console.error('[commerce] auto refund failed', String(order._id), error.message));
+    }
     throw new ApiError(409, 'Order expired before payment completed; the amount will be refunded', { code: 'ORDER_EXPIRED' });
   }
   throw new ApiError(409, `Payment is already ${fresh.payment.status}`);

@@ -4,7 +4,9 @@ import { ORDER_STATUSES } from '../services/pricing.js';
 
 export const ORDER_CHANNELS = Object.freeze(['app', 'whatsapp', 'phone', 'pos', 'lead']);
 export const PAYMENT_METHODS = Object.freeze(['cash', 'online', 'credit']);
-export const PAYMENT_STATUSES = Object.freeze(['pending', 'partial', 'paid', 'refund_due', 'refunded']);
+// refund_due: cancelled/returned with money still to give back; partially_refunded / refunded once
+// CommerceRefund records are paid out (services/refundService.js).
+export const PAYMENT_STATUSES = Object.freeze(['pending', 'partial', 'paid', 'refund_due', 'partially_refunded', 'refunded']);
 // reserved: held against stock; committed: deducted from qty_on_hand; released: hold returned;
 // restocked: committed stock put back after a return.
 export const STOCK_STATES = Object.freeze(['reserved', 'committed', 'released', 'restocked']);
@@ -65,6 +67,10 @@ const orderSchema = new mongoose.Schema(
       method: { type: String, enum: PAYMENT_METHODS, default: 'cash' },
       status: { type: String, enum: PAYMENT_STATUSES, default: 'pending', index: true },
       paid_amount: { type: Number, default: 0 },
+      // Sum of refund records that are not rejected (requested + approved + paid). Changed only by a
+      // guarded $inc, so refunds can never add up to more than paid_amount.
+      refund_committed: { type: Number, default: 0 },
+      refunded_amount: { type: Number, default: 0 }, // refund records marked paid
       razorpay_order_id: { type: String, default: null, index: true },
       razorpay_payment_id: { type: String, default: null },
       due_date: { type: Date, default: null },

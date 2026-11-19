@@ -110,6 +110,30 @@ export const getActivePriceHikeMultiplier = async () => {
 
 const roundMoney = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 
+/**
+ * A franchise's own price for its territory (franchiseFareService): scales the
+ * same fare fields as a hike, up or down. Separate from the hike so the apps'
+ * surge badge (price_hike_multiplier) still means surge only.
+ */
+export const applyFranchiseFareToSetPrice = (row, multiplier) => {
+  if (!row || !(multiplier > 0) || multiplier === 1) return row;
+  const next = { ...row };
+  for (const field of SCALED_FIELDS) {
+    if (typeof next[field] === 'number') next[field] = roundMoney(next[field] * multiplier);
+  }
+  if (Array.isArray(next.package_vehicle_prices)) {
+    next.package_vehicle_prices = next.package_vehicle_prices.map((price) => {
+      const scaled = { ...price };
+      for (const field of SCALED_PACKAGE_FIELDS) {
+        if (typeof scaled[field] === 'number') scaled[field] = roundMoney(scaled[field] * multiplier);
+      }
+      return scaled;
+    });
+  }
+  next.franchise_fare_multiplier = multiplier;
+  return next;
+};
+
 /** Returns a copy of a serialized set-price row with fare fields scaled. */
 export const applyPriceHikeToSetPrice = (row, multiplier) => {
   if (!row || !(multiplier > 1)) {

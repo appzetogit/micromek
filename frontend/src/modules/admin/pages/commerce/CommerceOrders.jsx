@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Plus, Search, Trash2 } from 'lucide-react';
 import {
-  Button, Card, DataTable, Field, Input, Modal, Notice, Pager, PageShell, Select, StatusBadge, Textarea, Toolbar,
+  Button, Card, DataTable, Field, Input, Modal, Notice, Pager, PageShell, Select, StatusBadge, Tabs, Textarea, Toolbar,
   dateTime, inr, useApi, useDebounced,
 } from '../platform/kit';
 import { createOrder, listCustomers, listOrders } from '../../services/commerceApi';
@@ -11,6 +11,7 @@ import {
   AddressFields, MANUAL_CHANNELS, MODULE, ORDER_CHANNELS, ORDER_STATUSES, ORDER_TYPES, PAYMENT_STATUSES, ProductPicker, Toggle,
   emptyAddress, formatAddress, label, periodParams, storeName, useStores, useToastAction,
 } from './common';
+import { RefundsPanel } from './refunds';
 
 const EMPTY_FILTERS = { store_id: '', status: '', type: '', channel: '', payment_status: '', from: '', to: '', search: '' };
 
@@ -20,6 +21,7 @@ const CommerceOrders = () => {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
+  const [tab, setTab] = useState('orders');
   const search = useDebounced(filters.search);
 
   const { from, to, search: _s, ...rest } = filters;
@@ -58,44 +60,47 @@ const CommerceOrders = () => {
       title="Orders"
       right={<Button icon={Plus} onClick={() => setCreating(true)}>New manual order</Button>}
     >
-      <Card bodyClassName="">
-        <Toolbar>
-          <Field label="Search" className="w-full sm:w-56">
-            <Input placeholder="Number, name, phone" value={filters.search} onChange={setFilter('search')} />
-          </Field>
-          <Field label="Store" className="w-full sm:w-48">
-            <Select placeholder="All stores" options={storeOptions} value={filters.store_id} onChange={setFilter('store_id')} />
-          </Field>
-          <Field label="Status" className="w-full sm:w-36">
-            <Select placeholder="Any" options={ORDER_STATUSES} value={filters.status} onChange={setFilter('status')} />
-          </Field>
-          <Field label="Type" className="w-full sm:w-32">
-            <Select placeholder="Any" options={ORDER_TYPES} value={filters.type} onChange={setFilter('type')} />
-          </Field>
-          <Field label="Channel" className="w-full sm:w-32">
-            <Select placeholder="Any" options={ORDER_CHANNELS} value={filters.channel} onChange={setFilter('channel')} />
-          </Field>
-          <Field label="Payment" className="w-full sm:w-36">
-            <Select placeholder="Any" options={PAYMENT_STATUSES} value={filters.payment_status} onChange={setFilter('payment_status')} />
-          </Field>
-          <Field label="From" className="w-full sm:w-40">
-            <Input type="date" value={filters.from} onChange={setFilter('from')} />
-          </Field>
-          <Field label="To" className="w-full sm:w-40">
-            <Input type="date" value={filters.to} onChange={setFilter('to')} />
-          </Field>
-          <Button variant="secondary" onClick={() => { setFilters(EMPTY_FILTERS); setPage(1); }}>Reset</Button>
-        </Toolbar>
-        <DataTable
-          columns={columns}
-          rows={data?.items || []}
-          loading={loading}
-          error={error}
-          empty="No orders match these filters"
-          onRowClick={(o) => navigate(`/admin/commerce/orders/${o._id}`)}
-        />
-        <Pager data={data} onPage={setPage} />
-      </Card>
+      <Tabs tabs={[{ value: 'orders', label: 'Orders' }, { value: 'refunds', label: 'Refunds' }]} value={tab} onChange={setTab} />
+      {tab === 'refunds' ? <RefundsPanel storeOptions={storeOptions} /> : (
+        <Card bodyClassName="">
+          <Toolbar>
+            <Field label="Search" className="w-full sm:w-56">
+              <Input placeholder="Number, name, phone" value={filters.search} onChange={setFilter('search')} />
+            </Field>
+            <Field label="Store" className="w-full sm:w-48">
+              <Select placeholder="All stores" options={storeOptions} value={filters.store_id} onChange={setFilter('store_id')} />
+            </Field>
+            <Field label="Status" className="w-full sm:w-36">
+              <Select placeholder="Any" options={ORDER_STATUSES} value={filters.status} onChange={setFilter('status')} />
+            </Field>
+            <Field label="Type" className="w-full sm:w-32">
+              <Select placeholder="Any" options={ORDER_TYPES} value={filters.type} onChange={setFilter('type')} />
+            </Field>
+            <Field label="Channel" className="w-full sm:w-32">
+              <Select placeholder="Any" options={ORDER_CHANNELS} value={filters.channel} onChange={setFilter('channel')} />
+            </Field>
+            <Field label="Payment" className="w-full sm:w-36">
+              <Select placeholder="Any" options={PAYMENT_STATUSES} value={filters.payment_status} onChange={setFilter('payment_status')} />
+            </Field>
+            <Field label="From" className="w-full sm:w-40">
+              <Input type="date" value={filters.from} onChange={setFilter('from')} />
+            </Field>
+            <Field label="To" className="w-full sm:w-40">
+              <Input type="date" value={filters.to} onChange={setFilter('to')} />
+            </Field>
+            <Button variant="secondary" onClick={() => { setFilters(EMPTY_FILTERS); setPage(1); }}>Reset</Button>
+          </Toolbar>
+          <DataTable
+            columns={columns}
+            rows={data?.items || []}
+            loading={loading}
+            error={error}
+            empty="No orders match these filters"
+            onRowClick={(o) => navigate(`/admin/commerce/orders/${o._id}`)}
+          />
+          <Pager data={data} onPage={setPage} />
+        </Card>
+      )}
 
       {creating ? (
         <ManualOrderModal

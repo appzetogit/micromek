@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { CreditCard, Download, FileText, History, Loader2, MapPin, Package, RefreshCw, Truck, User, XCircle } from 'lucide-react';
+import { CreditCard, Download, FileText, History, Loader2, MapPin, Package, RefreshCw, Truck, Undo2, User, XCircle } from 'lucide-react';
 import {
   Button, Card, DataTable, Field, Input, KeyValue, Modal, Notice, PageShell, Select, StatusBadge, Textarea,
   dateOnly, dateTime, downloadFile, errorMessage, inr, num, useApi,
@@ -14,6 +14,7 @@ import {
   CANCELLABLE_SHIPMENT, MODULE, ORDER_TRANSITIONS, SHIPMENT_STATUSES, SHIPPING_PROVIDERS, TERMINAL_SHIPMENT,
   formatAddress, label, storeName, useToastAction,
 } from './common';
+import { NewRefundModal, RefundTable } from './refunds';
 
 const BACK = '/admin/commerce/orders';
 
@@ -45,6 +46,7 @@ const CommerceOrderDetail = () => {
           <LineItems order={order} />
           <Shipments order={order} onChanged={reload} />
           <Payments order={order} onChanged={reload} />
+          <Refunds order={order} onChanged={reload} />
         </div>
         <div className="space-y-6">
           <InvoiceCard order={order} onChanged={reload} />
@@ -254,6 +256,28 @@ const Payments = ({ order, onChanged }) => {
         </Field>
         <Field label="Reference"><Input placeholder="UTR / cheque no. / note" value={form.reference} onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))} /></Field>
       </Modal>
+    </Card>
+  );
+};
+
+// ---------- refunds ----------
+
+const Refunds = ({ order, onChanged }) => {
+  const [creating, setCreating] = useState(false);
+  const p = order.payment || {};
+  const refundable = Math.max(0, (p.paid_amount || 0) - (p.refund_committed || 0));
+  const refunds = order.refunds || [];
+  if (!refunds.length && !(p.paid_amount > 0)) return null;
+  return (
+    <Card
+      title="Refunds"
+      subtitle={`refunded ${inr(p.refunded_amount || 0)} of ${inr(p.paid_amount)} paid · refundable ${inr(refundable)} · gateway refunds are done by hand`}
+      icon={Undo2}
+      right={refundable > 0.004 ? <Button variant="secondary" onClick={() => setCreating(true)}>New refund</Button> : null}
+      bodyClassName=""
+    >
+      <RefundTable rows={refunds} onChanged={onChanged} empty="No refunds on this order" />
+      {creating ? <NewRefundModal order={order} onClose={() => setCreating(false)} onCreated={() => { setCreating(false); onChanged(); }} /> : null}
     </Card>
   );
 };

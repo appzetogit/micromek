@@ -6,7 +6,8 @@
   "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node test/run.mjs"
   },
   "dependencies": {
     "@phonepe-pg/pg-sdk-node": "^2.0.6",
@@ -31,6 +32,7 @@
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
+    "mongodb-memory-server": "^10.1.4",
     "nodemon": "^3.1.4"
   }
 }

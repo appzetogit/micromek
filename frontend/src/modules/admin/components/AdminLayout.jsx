@@ -8,7 +8,7 @@ import { socketService } from '../../../shared/api/socket';
 import { useSettings } from '../../../shared/context/SettingsContext';
 import { getSupportConversations, markSupportMessagesRead } from '../../shared/chat/chatApi';
 import { adminService } from '../services/adminService';
-import { isMenuAllowed } from '../constants/adminAccess';
+import { hasAdminPermission, isMenuAllowed } from '../constants/adminAccess';
 import { zibusAdminService } from '../services/zibusAdminService';
 import { ADMIN_SIDEBAR_SECTIONS } from '../constants/adminSidebar';
 import toast from 'react-hot-toast';
@@ -1205,6 +1205,32 @@ const AdminLayout = () => {
       );
     });
 
+    // A new EV fleet alert (low/critical battery, offline, overspeed, charging
+    // fault). Only for admins who can open the EV pages.
+    socketService.on('ev_alert', (data = {}) => {
+      if (!hasAdminPermission(readAdminProfile(), 'ev_fleet.view')) return;
+      const critical = data.severity === 'critical';
+      const show = critical ? toast.error : toast;
+      show(
+        (t) => (
+          <div className="text-[12px] leading-snug">
+            <p className={`font-extrabold text-[13px] ${critical ? 'text-red-700' : 'text-amber-700'}`}>
+              EV alert{data.vehicle?.registrationNo ? ` - ${data.vehicle.registrationNo}` : ''}
+            </p>
+            <p>{data.message || String(data.type || '').replace(/_/g, ' ')}</p>
+            <button
+              type="button"
+              className="mt-1.5 text-[11px] font-bold text-white bg-gray-900 rounded px-2 py-1"
+              onClick={() => { toast.dismiss(t.id); navigate('/admin/ev/alerts'); }}
+            >
+              Open EV alerts
+            </button>
+          </div>
+        ),
+        { duration: critical ? Infinity : 8000, id: `ev-alert-${data.id || Date.now()}` },
+      );
+    });
+
     socketService.on('new_driver_registration', (data) => {
       console.log('New driver registration:', data);
     });
@@ -1272,6 +1298,7 @@ const AdminLayout = () => {
 
     return () => {
       socketService.off('new_sos');
+      socketService.off('ev_alert');
       socketService.off('new_driver_registration');
       socketService.off('new_booking');
       socketService.off('chat:message', handleSupportChatNotification);

@@ -2,6 +2,8 @@ import { registerLeaderJob, startLeaderElection } from './shared/leader.js';
 import { startEvTelemetryLoop, stopEvTelemetryLoop } from './ev/services/evIngestService.js';
 import { registerLeadEventListeners, startLeadJobs, stopLeadJobs } from './leads/index.js';
 import { startCommerceJobs } from './commerce/routes/index.js';
+import { startMarketingJobs, stopMarketingJobs } from './marketing/index.js';
+import { startCityDeliveryReconcile, stopCityDeliveryReconcile } from './integrations/commerceCityDelivery.js';
 
 let stopCommerce = null;
 
@@ -19,5 +21,7 @@ export const startPlatformJobs = () => {
     () => { stopCommerce = startCommerceJobs(); },
     () => { if (typeof stopCommerce === 'function') stopCommerce(); stopCommerce = null; },
   );
+  registerLeaderJob('city-delivery-reconcile', () => startCityDeliveryReconcile(), stopCityDeliveryReconcile);
+  registerLeaderJob('marketing-publish', startMarketingJobs, stopMarketingJobs);
   startLeaderElection();
 };

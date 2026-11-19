@@ -7,6 +7,7 @@ import { CommerceCustomer } from '../models/Customer.js';
 import { CommerceInvoice } from '../models/Invoice.js';
 import { CommerceOrder, ORDER_CHANNELS, PAYMENT_METHODS } from '../models/Order.js';
 import { CommerceProduct } from '../models/Product.js';
+import { CommerceRefund } from '../models/Refund.js';
 import { CommerceShipment } from '../models/Shipment.js';
 import { actorOf, assertStoreAccess, storeFilter } from '../services/accessService.js';
 import { logActivity } from '../services/activityService.js';
@@ -220,11 +221,12 @@ export const listOrders = asyncHandler(async (req, res) => {
 
 export const getOrder = asyncHandler(async (req, res) => {
   const order = (await scopedOrder(req)).toObject();
-  const [shipments, invoice] = await Promise.all([
+  const [shipments, invoice, refunds] = await Promise.all([
     CommerceShipment.find({ order_id: order._id }).sort({ createdAt: -1 }).lean(),
     order.invoice_id ? CommerceInvoice.findById(order.invoice_id).select('number issued_at').lean() : null,
+    CommerceRefund.find({ order_id: order._id }).sort({ createdAt: -1 }).lean(),
   ]);
-  return ok(res, { ...order, shipments, invoice });
+  return ok(res, { ...order, shipments, invoice, refunds });
 });
 
 /// Manual (WhatsApp / phone / POS / lead) order entry by staff or admin.
@@ -262,7 +264,7 @@ export const createManualOrder = asyncHandler(async (req, res) => {
     initialStatus: 'confirmed', // staff took the order themselves
     dueDate,
   });
-  logActivity(req, 'order.create', { store_id: storeId, entity: 'order', entity_id: order._id, meta: { number: order.number, channel, total: order.totals.grand_total } });
+  logActivity(req, 'order.create', { store_id: storeId, entity: 'order', entity_id: order._id, label: order.number, meta: { number: order.number, channel, total: order.totals.grand_total } });
   return ok(res, order, 201);
 });
 
@@ -275,21 +277,21 @@ export const setOrderStatus = asyncHandler(async (req, res) => {
     if (shipment) await cancelShipment(shipment);
   }
   const updated = await transitionOrder(req, order._id, to, { note: req.body?.note, filter: storeFilter(req) });
-  logActivity(req, `order.${to}`, { store_id: order.store_id, entity: 'order', entity_id: order._id, meta: { number: order.number, from: order.status } });
+  logActivity(req, `order.${to}`, { store_id: order.store_id, entity: 'order', entity_id: order._id, label: order.number, meta: { number: order.number, from: order.status } });
   return ok(res, updated);
 });
 
 export const addPayment = asyncHandler(async (req, res) => {
   const order = await scopedOrder(req);
   const updated = await recordPayment(req, order._id, req.body || {}, storeFilter(req));
-  logActivity(req, 'payment.record', { store_id: order.store_id, entity: 'order', entity_id: order._id, meta: { amount: Number(req.body?.amount), method: req.body?.method } });
+  logActivity(req, 'payment.record', { store_id: order.store_id, entity: 'order', entity_id: order._id, label: order.number, meta: { amount: Number(req.body?.amount), method: req.body?.method } });
   return ok(res, updated);
 });
 
 export const issueOrderInvoice = asyncHandler(async (req, res) => {
   const order = await scopedOrder(req);
   const invoice = await issueInvoice(req, order);
-  logActivity(req, 'invoice.issue', { store_id: order.store_id, entity: 'invoice', entity_id: invoice._id, meta: { number: invoice.number } });
+  logActivity(req, 'invoice.issue', { store_id: order.store_id, entity: 'invoice', entity_id: invoice._id, label: invoice.number, meta: { number: invoice.number } });
   return ok(res, invoice, 201);
 });
 
@@ -329,7 +331,7 @@ export const shippingRates = asyncHandler(async (req, res) => {
 export const createShipment = asyncHandler(async (req, res) => {
   const order = await scopedOrder(req);
   const shipment = await bookShipment(req, order, req.body || {});
-  logActivity(req, 'shipment.create', { store_id: order.store_id, entity: 'shipment', entity_id: shipment._id, meta: { provider: shipment.provider, awb: shipment.awb } });
+  logActivity(req, 'shipment.create', { store_id: order.store_id, entity: 'shipment', entity_id: shipment._id, label: `${order.number} · ${shipment.provider}`, meta: { provider: shipment.provider, awb: shipment.awb } });
   return ok(res, shipment, 201);
 });
 

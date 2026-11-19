@@ -7,7 +7,7 @@ import {
   dateTime, errorMessage, isoDay, num, pct, timeAgo, useAction, useApi,
 } from '../platform/kit';
 import { deleteEvVehicle, getEvTelemetry, getEvVehicle, listEvAlerts, updateEvVehicle } from '../../services/evApi';
-import { DateRange, FranchiseSelect, LineChart, VEHICLE_STATUSES, rangeParams, refId } from './evShared';
+import { DateRange, FranchiseSelect, LineChart, LinkPicker, VEHICLE_STATUSES, linkLabel, rangeParams, refId } from './evShared';
 
 const BUCKETS = [
   { value: 'auto', label: 'Auto' },
@@ -36,6 +36,8 @@ const formOf = (v) => ({
   notes: v.notes || '',
 });
 
+const LINK_TYPES = [['driver', 'driver_id'], ['fleet_vehicle', 'fleet_vehicle_id'], ['service_location', 'service_location_id']];
+
 const EditModal = ({ vehicle, onClose, onSaved }) => {
   const [form, setForm] = useState(() => formOf(vehicle));
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
@@ -46,10 +48,10 @@ const EditModal = ({ vehicle, onClose, onSaved }) => {
       battery_capacity_kwh: form.battery_capacity_kwh === '' ? null : Number(form.battery_capacity_kwh),
       make: form.make.trim(),
       model: form.model.trim(),
-      // Empty link ids clear the link on the backend.
-      driver_id: form.driver_id.trim(),
-      fleet_vehicle_id: form.fleet_vehicle_id.trim(),
-      service_location_id: form.service_location_id.trim(),
+      // Empty link ids (picker cleared) clear the link on the backend.
+      driver_id: form.driver_id || null,
+      fleet_vehicle_id: form.fleet_vehicle_id || null,
+      service_location_id: form.service_location_id || null,
     }),
     { onSuccess: () => { toast.success('Vehicle updated'); onSaved(); }, onError },
   );
@@ -68,9 +70,15 @@ const EditModal = ({ vehicle, onClose, onSaved }) => {
         <Field label="Model"><Input value={form.model} onChange={set('model')} /></Field>
         <Field label="Battery capacity (kWh)"><Input type="number" min="0" step="0.1" value={form.battery_capacity_kwh} onChange={set('battery_capacity_kwh')} /></Field>
         <Field label="Franchise"><FranchiseSelect value={form.franchise_id} onChange={(v) => setForm((f) => ({ ...f, franchise_id: v }))} /></Field>
-        <Field label="Driver id" hint="Taxi driver id; empty to unlink"><Input value={form.driver_id} onChange={set('driver_id')} /></Field>
-        <Field label="Fleet vehicle id" hint="Taxi fleet vehicle id; empty to unlink"><Input value={form.fleet_vehicle_id} onChange={set('fleet_vehicle_id')} /></Field>
-        <Field label="Service location id" hint="Empty to unlink"><Input value={form.service_location_id} onChange={set('service_location_id')} /></Field>
+        {LINK_TYPES.map(([type, key]) => (
+          <LinkPicker
+            key={key}
+            type={type}
+            value={form[key]}
+            initialLabel={linkLabel(type, vehicle[key])}
+            onChange={(id) => setForm((f) => ({ ...f, [key]: id }))}
+          />
+        ))}
       </div>
       <Field label="Notes"><Textarea value={form.notes} onChange={set('notes')} /></Field>
     </Modal>
@@ -211,9 +219,9 @@ const EvVehicleDetail = () => {
               ['Battery capacity', vehicle.battery_capacity_kwh ? `${num(vehicle.battery_capacity_kwh, 1)} kWh` : '—'],
               ['Low battery threshold', pct(vehicle.low_battery_threshold_pct)],
               ['VIN', vehicle.vin || '—'],
-              ['Driver', vehicle.driver_id?.name ? `${vehicle.driver_id.name}${vehicle.driver_id.phone ? ` · ${vehicle.driver_id.phone}` : ''}` : '—'],
-              ['Fleet vehicle', vehicle.fleet_vehicle_id?.license_plate_number || '—'],
-              ['Service location', vehicle.service_location_id?.name || '—'],
+              ['Driver', linkLabel('driver', vehicle.driver_id) || '—'],
+              ['Fleet vehicle', linkLabel('fleet_vehicle', vehicle.fleet_vehicle_id) || '—'],
+              ['Service location', linkLabel('service_location', vehicle.service_location_id) || '—'],
               ['Franchise', vehicle.franchise_id?.name || '—'],
               ['Notes', vehicle.notes || '—'],
             ]}

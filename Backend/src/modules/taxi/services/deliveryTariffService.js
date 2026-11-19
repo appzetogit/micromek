@@ -1,4 +1,5 @@
 import { SetPrice } from '../admin/models/SetPrice.js';
+import { getFranchiseFareMultiplier } from '../../franchise/services/franchiseFareService.js';
 
 /**
  * The delivery tariff that applies to one vehicle in one zone.
@@ -76,7 +77,26 @@ export const vehicleDeliveryTariff = (vehicle = {}) => {
  * none. [vehicle] is a lean Vehicle carrying `delivery_distance_pricing` and
  * `service_tax`; [zone] may be null for a trip outside every polygon.
  */
+/// The tariff below, priced for the franchise that owns the zone, if any
+/// (franchise/services/franchiseFareService.js). Money fields scale; distance
+/// and time allowances do not.
 export const resolveDeliveryTariff = async ({ vehicle, zone = null } = {}) => {
+  const tariff = await resolveBaseDeliveryTariff({ vehicle, zone });
+  const multiplier = zone
+    ? await getFranchiseFareMultiplier({ zoneId: zone._id, serviceLocationId: zone.service_location_id, transportType: 'delivery' })
+    : 1;
+  if (multiplier === 1) return tariff;
+  const money = (n) => Math.round(Number(n || 0) * multiplier * 100) / 100;
+  return {
+    ...tariff,
+    basePrice: money(tariff.basePrice),
+    pricePerKm: money(tariff.pricePerKm),
+    waitingChargePerMinute: money(tariff.waitingChargePerMinute),
+    franchiseFareMultiplier: multiplier,
+  };
+};
+
+const resolveBaseDeliveryTariff = async ({ vehicle, zone = null } = {}) => {
   const fallback = vehicleDeliveryTariff(vehicle);
   const zoneId = toId(zone?._id);
   const serviceLocationId = toId(zone?.service_location_id);

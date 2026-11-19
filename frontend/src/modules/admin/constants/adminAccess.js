@@ -180,6 +180,8 @@ export const ADMIN_PERMISSION_GROUPS = [
       { key: 'ev_fleet.view', label: 'EV Fleet' },
       { key: 'commerce.view', label: 'E-commerce' },
       { key: 'leads.view', label: 'Leads & WhatsApp' },
+      { key: 'marketing.view', label: 'Marketing & AI' },
+      { key: 'marketing.approve', label: 'Approve marketing content' },
     ],
   },
 ];

@@ -21,6 +21,12 @@ export const setPlatformDeliveryBooker = (fn) => {
   platformDeliveryBooker = typeof fn === 'function' ? fn : null;
 };
 
+let platformDeliveryCanceller = null;
+/// fn(shipment): cancels the platform ride behind a shipment (integrations/commerceCityDelivery.js).
+export const setPlatformDeliveryCanceller = (fn) => {
+  platformDeliveryCanceller = typeof fn === 'function' ? fn : null;
+};
+
 const num = (key, fallback) => (Number.isFinite(Number(process.env[key])) && process.env[key] !== '' ? Number(process.env[key]) : fallback);
 const isEnabled = () => String(process.env.COMMERCE_LOCAL_DELIVERY || 'on').toLowerCase() !== 'off';
 
@@ -72,8 +78,8 @@ export const localPorter = {
     return null;
   },
 
-  async cancel() {
-    // TODO: cancel the platform Delivery once the booker hook exists.
+  async cancel(shipment) {
+    if (platformDeliveryCanceller && shipment?.platform_delivery_id) await platformDeliveryCanceller(shipment);
     return { cancelled: true };
   },
 

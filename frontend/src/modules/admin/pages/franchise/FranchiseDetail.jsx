@@ -166,6 +166,14 @@ const FranchiseDetail = () => {
             ]),
           ]}
           />
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 mb-2">Fares in territory (× platform tariff)</p>
+            <KeyValue items={TRANSPORT_TYPES.map((t) => {
+              const v = Number(franchise.fare_multipliers?.[t] ?? 1);
+              return [t[0].toUpperCase() + t.slice(1), v === 1 ? <span className="text-gray-400">Platform price</span> : `${v}× (${v > 1 ? '+' : ''}${Math.round((v - 1) * 100)}%)`];
+            })}
+            />
+          </div>
         </Card>
         <Card title="Bank details" icon={Landmark}>
           <KeyValue items={[

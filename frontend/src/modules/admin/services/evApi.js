@@ -31,5 +31,8 @@ export const getEvUtilisation = (params = {}) => api.get(`${BASE}/reports/utilis
 /** Path for downloadFile(); the backend answers text/csv. */
 export const evUtilisationCsvPath = (params = {}) => `${BASE}/reports/utilisation${qs({ ...params, format: 'csv' })}`;
 
+/** Link pickers: type = driver | fleet_vehicle | service_location; { search } or { id } → [{ id, label }] (max 20). */
+export const evLookup = (type, params = {}) => api.get(`${BASE}/lookups${qs({ type, ...params })}`);
+
 /** Franchises for link pickers. */
 export const listFranchiseOptions = () => api.get(`/admin/franchises${qs({ limit: 100 })}`);

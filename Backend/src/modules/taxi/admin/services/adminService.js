@@ -81,7 +81,8 @@ import { buildRentalTrackingSnapshot, listActiveRentalTrackingBookings } from '.
 import { sendEmail } from '../../services/mailService.js';
 import { getActivePaymentGateway, normalizePaymentSettingsPayload } from '../../services/paymentGatewayService.js';
 import { signAccessToken } from '../../services/tokenService.js';
-import { applyPriceHikeToSetPrice, getActivePriceHikeMultiplier } from '../../services/priceHikeService.js';
+import { applyFranchiseFareToSetPrice, applyPriceHikeToSetPrice, getActivePriceHikeMultiplier } from '../../services/priceHikeService.js';
+import { franchiseMultiplierForRow } from '../../../franchise/services/franchiseFareService.js';
 import { DEFAULT_PROFILE, getSurgeProfiles, listActiveSurges, resetVehicleSurgeSettings, updateSurgeSettings } from '../../services/surgeService.js';
 import { getBidRideSettings } from '../../services/transportSettingsService.js';
 import { resolveCatalogDispatchType } from '../../services/biddingPolicyService.js';
@@ -8090,9 +8091,13 @@ export const listSetPrices = async (queryArgs = {}, currentAdmin = null, options
   const rowMultiplier = (row) => (typeof options.multiplierForVehicle === 'function'
     ? Number(options.multiplierForVehicle(setPriceVehicleId(row))) || 1
     : hikeMultiplier);
+  // A franchise's own price for its territory stacks on top (surge × franchise).
   const quotedResults = currentAdmin
     ? pagedRows.map((row) => row.result)
-    : pagedRows.map((row) => applyPriceHikeToSetPrice(row.result, rowMultiplier(row.result)));
+    : await Promise.all(pagedRows.map(async (row) => applyFranchiseFareToSetPrice(
+      applyPriceHikeToSetPrice(row.result, rowMultiplier(row.result)),
+      await franchiseMultiplierForRow(row.result),
+    )));
 
   return {
     results: quotedResults,

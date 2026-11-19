@@ -152,12 +152,12 @@ const LowStock = ({ storeId }) => {
 };
 
 const StaffPerformance = ({ scope }) => {
-  const params = { from: scope.from, to: scope.to, store_id: scope.store_id };
+  const params = { from: scope.from, to: scope.to, store_id: scope.store_id, franchise_id: scope.franchise_id };
   const { data, loading, error } = useApi(() => reportStaff(params), [JSON.stringify(params)]);
   const rows = data || [];
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-      <Card className="xl:col-span-2" title="Orders entered by staff" subtitle="Franchise filter does not apply" bodyClassName="">
+      <Card className="xl:col-span-2" title="Orders entered by staff" subtitle={scope.franchise_id ? 'Orders placed while the store belonged to the franchise' : undefined} bodyClassName="">
         <DataTable
           columns={[
             { key: 'name', label: 'Staff', render: (r) => r.name || r.staff_id },

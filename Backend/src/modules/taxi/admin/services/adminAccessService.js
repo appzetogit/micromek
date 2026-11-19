@@ -35,6 +35,8 @@ export const ADMIN_PERMISSIONS = [
   'ev_fleet.view',
   'commerce.view',
   'leads.view',
+  'marketing.view',
+  'marketing.approve',
 ];
 
 export const normalizeAdminType = (value = '') =>

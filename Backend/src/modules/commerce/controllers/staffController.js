@@ -7,11 +7,12 @@ import { signAccessToken } from '../../taxi/services/tokenService.js';
 import { assertObjectId, parsePaging, parsePeriod, toObjectIds } from '../../franchise/services/franchiseService.js';
 import { CommerceActivityLog } from '../models/ActivityLog.js';
 import { CommerceCustomer } from '../models/Customer.js';
+import { CommerceOrder } from '../models/Order.js';
 import { CommerceStaff, STAFF_ROLES } from '../models/Staff.js';
 import { CommerceStore } from '../models/Store.js';
 import { STAFF_TOKEN_ROLE } from '../middlewares/commerceAuth.js';
 import { STAFF_PERMISSIONS, STAFF_TRANSITION_TARGETS, assertStoreAccess, scopedStoreIds, storeFilter } from '../services/accessService.js';
-import { logActivity } from '../services/activityService.js';
+import { logActivity, withActivityLabels } from '../services/activityService.js';
 import { lowStock, salesReport, staffPerformance, topProducts } from '../services/reportService.js';
 import { money, pick, required, rethrowDuplicate, searchRegex, toBool } from './helpers.js';
 
@@ -31,7 +32,7 @@ export const staffLogin = asyncHandler(async (req, res) => {
   if (!staff.active) throw new ApiError(403, 'Staff account is inactive');
   await CommerceStaff.updateOne({ _id: staff._id }, { $set: { last_login_at: new Date() } });
   req.commerce = { actor: { type: 'staff', id: String(staff._id), name: staff.name, role: staff.role } };
-  logActivity(req, 'staff.login', { entity: 'staff', entity_id: staff._id });
+  logActivity(req, 'staff.login', { entity: 'staff', entity_id: staff._id, label: staff.name });
   const token = signAccessToken({ sub: String(staff._id), role: STAFF_TOKEN_ROLE });
   return ok(res, { token, staff: staff.toJSON(), permissions: STAFF_PERMISSIONS[staff.role] });
 });
@@ -49,7 +50,7 @@ export const staffChangePassword = asyncHandler(async (req, res) => {
   assertPassword(req.body?.new_password);
   staff.password = await hashPassword(req.body.new_password);
   await staff.save();
-  logActivity(req, 'staff.password_change', { entity: 'staff', entity_id: staff._id });
+  logActivity(req, 'staff.password_change', { entity: 'staff', entity_id: staff._id, label: staff.name });
   return ok(res, { changed: true });
 });
 
@@ -96,7 +97,7 @@ export const adminListStaff = asyncHandler(async (req, res) => {
 export const adminCreateStaff = asyncHandler(async (req, res) => {
   const data = await staffPayload(req.body);
   const staff = await CommerceStaff.create({ ...data, created_by: req.commerce.actor.id }).catch((e) => rethrowDuplicate(e, 'Staff'));
-  logActivity(req, 'staff.create', { entity: 'staff', entity_id: staff._id, meta: { role: staff.role } });
+  logActivity(req, 'staff.create', { entity: 'staff', entity_id: staff._id, label: staff.name, meta: { role: staff.role } });
   return ok(res, staff.toJSON(), 201);
 });
 
@@ -110,18 +111,62 @@ export const adminUpdateStaff = asyncHandler(async (req, res) => {
   const staff = await CommerceStaff.findByIdAndUpdate(assertObjectId(req.params.id), update, { returnDocument: 'after', runValidators: true })
     .catch((e) => rethrowDuplicate(e, 'Staff'));
   if (!staff) throw new ApiError(404, 'Staff not found');
-  logActivity(req, 'staff.update', { entity: 'staff', entity_id: staff._id, meta: { fields: Object.keys(data).filter((k) => k !== 'password') } });
+  logActivity(req, 'staff.update', { entity: 'staff', entity_id: staff._id, label: staff.name, meta: { fields: Object.keys(data).filter((k) => k !== 'password') } });
   return ok(res, staff.toJSON());
 });
 
 export const adminDeactivateStaff = asyncHandler(async (req, res) => {
   const staff = await CommerceStaff.findByIdAndUpdate(assertObjectId(req.params.id), { $set: { active: false } }, { returnDocument: 'after' });
   if (!staff) throw new ApiError(404, 'Staff not found');
-  logActivity(req, 'staff.deactivate', { entity: 'staff', entity_id: staff._id });
+  logActivity(req, 'staff.deactivate', { entity: 'staff', entity_id: staff._id, label: staff.name });
   return ok(res, staff.toJSON());
 });
 
 // =================== customers (staff / admin) ===================
+
+const CUSTOMER_ORDER_FIELDS = 'number store_id status type channel payment.method payment.status payment.paid_amount payment.refunded_amount payment.due_date totals.grand_total createdAt';
+
+/// Balance over the customer's orders within `scope`. Cancelled and returned orders are not billed.
+///   billed       sum of grand_total
+///   paid         paid_amount less refunds paid out, on billed orders
+///   outstanding  unpaid balance of billed orders that are still pending / partially paid
+///   credit_due   the part of outstanding on credit (wholesale) orders: what the credit limit checks
+///   refund_due   money still owed back (paid less refunded) on cancelled / returned orders
+const customerBalance = async (customerId, scope = {}) => {
+  const billed = { $not: [{ $in: ['$status', ['cancelled', 'returned']] }] };
+  const unpaid = { $and: [billed, { $in: ['$payment.status', ['pending', 'partial']] }] };
+  const balance = { $max: [0, { $subtract: ['$totals.grand_total', '$payment.paid_amount'] }] };
+  const refunded = { $ifNull: ['$payment.refunded_amount', 0] };
+  const [row] = await CommerceOrder.aggregate([
+    { $match: { customer_id: new mongoose.Types.ObjectId(String(customerId)), ...scope } },
+    {
+      $group: {
+        _id: null,
+        orders: { $sum: 1 },
+        billed_orders: { $sum: { $cond: [billed, 1, 0] } },
+        billed: { $sum: { $cond: [billed, '$totals.grand_total', 0] } },
+        paid: { $sum: { $cond: [billed, { $subtract: ['$payment.paid_amount', refunded] }, 0] } },
+        outstanding: { $sum: { $cond: [unpaid, balance, 0] } },
+        credit_due: { $sum: { $cond: [{ $and: [unpaid, { $eq: ['$payment.method', 'credit'] }] }, balance, 0] } },
+        refund_due: { $sum: { $cond: [billed, 0, { $max: [0, { $subtract: ['$payment.paid_amount', refunded] }] }] } },
+        refunded: { $sum: refunded },
+        last_order_at: { $max: '$createdAt' },
+      },
+    },
+  ]);
+  const r2 = (n) => Math.round((n || 0) * 100) / 100;
+  return {
+    orders: row?.orders || 0,
+    billed_orders: row?.billed_orders || 0,
+    billed: r2(row?.billed),
+    paid: r2(row?.paid),
+    outstanding: r2(row?.outstanding),
+    credit_due: r2(row?.credit_due),
+    refund_due: r2(row?.refund_due),
+    refunded: r2(row?.refunded),
+    last_order_at: row?.last_order_at || null,
+  };
+};
 
 /// Staff see customers whose home store is one of theirs or who have no home store
 /// (shared customer base: one vendor). Admin sees all.
@@ -171,17 +216,52 @@ export const listCustomers = asyncHandler(async (req, res) => {
   return paged(res, { items, total, page, limit });
 });
 
-export const getCustomer = asyncHandler(async (req, res) => {
+const scopedCustomer = async (req) => {
   const customer = await CommerceCustomer.findOne({ _id: assertObjectId(req.params.id), ...customerScope(req) }).lean();
   if (!customer) throw new ApiError(404, 'Customer not found');
-  return ok(res, customer);
+  return customer;
+};
+
+/// Customer plus balance summary and latest orders, both limited to the caller's stores.
+/// ?orders_limit (default 10, max 50, 0 = none); page through GET /customers/:id/orders.
+export const getCustomer = asyncHandler(async (req, res) => {
+  const customer = await scopedCustomer(req);
+  const scope = storeFilter(req);
+  const ordersLimit = Math.min(50, Math.max(0, Number(req.query.orders_limit ?? 10) || 0));
+  const [summary, orders] = await Promise.all([
+    customerBalance(customer._id, scope),
+    ordersLimit
+      ? CommerceOrder.find({ customer_id: customer._id, ...scope }).select(CUSTOMER_ORDER_FIELDS)
+        .populate('store_id', 'code name').sort({ createdAt: -1 }).limit(ordersLimit).lean()
+      : [],
+  ]);
+  return ok(res, { ...customer, summary: { ...summary, credit_limit: customer.credit_limit || 0 }, recent_orders: orders });
+});
+
+/// GET /customers/:id/orders?page&limit&status&payment_status&store_id: the customer's orders in
+/// the caller's stores, plus the same balance summary.
+export const customerOrders = asyncHandler(async (req, res) => {
+  const customer = await scopedCustomer(req);
+  const { page, limit, skip } = parsePaging(req.query);
+  const filter = { customer_id: customer._id, ...storeFilter(req, req.query.store_id) };
+  if (req.query.status) filter.status = String(req.query.status);
+  if (req.query.payment_status) filter['payment.status'] = String(req.query.payment_status);
+  const [items, total, summary] = await Promise.all([
+    CommerceOrder.find(filter).select(CUSTOMER_ORDER_FIELDS).populate('store_id', 'code name')
+      .sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    CommerceOrder.countDocuments(filter),
+    customerBalance(customer._id, storeFilter(req)),
+  ]);
+  return ok(res, {
+    items, total, page, limit, pages: Math.ceil(total / limit) || 0, summary: { ...summary, credit_limit: customer.credit_limit || 0 },
+  });
 });
 
 export const createCustomer = asyncHandler(async (req, res) => {
   const data = customerPayload(req, req.body);
   if (!data.home_store_id && req.commerce.storeIds?.length === 1) data.home_store_id = req.commerce.storeIds[0];
   const customer = await CommerceCustomer.create(data);
-  logActivity(req, 'customer.create', { store_id: customer.home_store_id, entity: 'customer', entity_id: customer._id });
+  logActivity(req, 'customer.create', { store_id: customer.home_store_id, entity: 'customer', entity_id: customer._id, label: customer.name });
   return ok(res, customer, 201);
 });
 
@@ -193,7 +273,7 @@ export const updateCustomer = asyncHandler(async (req, res) => {
     { returnDocument: 'after', runValidators: true },
   );
   if (!customer) throw new ApiError(404, 'Customer not found');
-  logActivity(req, 'customer.update', { store_id: customer.home_store_id, entity: 'customer', entity_id: customer._id, meta: { fields: Object.keys(data) } });
+  logActivity(req, 'customer.update', { store_id: customer.home_store_id, entity: 'customer', entity_id: customer._id, label: customer.name, meta: { fields: Object.keys(data) } });
   return ok(res, customer);
 });
 
@@ -208,6 +288,8 @@ export const listActivity = asyncHandler(async (req, res) => {
   if (req.query.actor_id) filter['actor.id'] = String(req.query.actor_id);
   if (req.query.actor_type) filter['actor.type'] = String(req.query.actor_type);
   if (req.query.action) filter.action = searchRegex(req.query.action);
+  if (req.query.entity) filter.entity = String(req.query.entity);
+  if (req.query.entity_id) filter.entity_id = String(req.query.entity_id);
   if (req.query.from || req.query.to) {
     const { start, end } = parsePeriod(req.query);
     filter.createdAt = { $gte: start, $lt: end };
@@ -216,7 +298,7 @@ export const listActivity = asyncHandler(async (req, res) => {
     CommerceActivityLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
     CommerceActivityLog.countDocuments(filter),
   ]);
-  return paged(res, { items, total, page, limit });
+  return paged(res, { items: await withActivityLabels(items), total, page, limit });
 });
 
 const reportScope = (req) => {
@@ -240,5 +322,7 @@ export const reportLowStock = asyncHandler(async (req, res) =>
 
 export const reportStaff = asyncHandler(async (req, res) => {
   const { start, end } = parsePeriod(req.query);
-  return ok(res, await staffPerformance({ scope: storeFilter(req, req.query.store_id), start, end }));
+  // franchise_id (admin only) filters on the order's franchise_id, i.e. the store's franchise when the
+  // order was placed - the same rule as the sales report, since this report aggregates orders.
+  return ok(res, await staffPerformance({ scope: reportScope(req), start, end }));
 });

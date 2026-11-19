@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Plus, Power } from 'lucide-react';
 import {
@@ -133,6 +134,29 @@ const StaffModal = ({ staff, stores, onClose, onSaved }) => {
   );
 };
 
+/** Where an activity row's entity opens in the admin; others show the label only. */
+const ENTITY_LINKS = {
+  order: (id) => `/admin/commerce/orders/${id}`,
+  product: (id) => `/admin/commerce/products/${id}`,
+};
+
+/** Entity type + its human label (stored on the row, or resolved by the API for old rows). */
+const EntityCell = ({ a }) => {
+  if (!a.entity) return '—';
+  const text = a.label || a.meta?.number || (a.entity_id ? `…${String(a.entity_id).slice(-6)}` : '');
+  const href = a.entity_id && ENTITY_LINKS[a.entity]?.(a.entity_id);
+  return (
+    <div className="min-w-0">
+      {href ? (
+        <Link to={href} className="text-indigo-600 hover:underline truncate block">{text}</Link>
+      ) : (
+        <p className="text-gray-900 truncate">{text || '—'}</p>
+      )}
+      <p className="text-xs text-gray-400 capitalize">{a.entity}</p>
+    </div>
+  );
+};
+
 const Activity = ({ stores }) => {
   const [filters, setFilters] = useState({ actor_id: '', store_id: '', action: '', from: '', to: '' });
   const [page, setPage] = useState(1);
@@ -147,7 +171,7 @@ const Activity = ({ stores }) => {
     { key: 'createdAt', label: 'When', render: (a) => <span className="whitespace-nowrap" title={dateTime(a.createdAt)}>{timeAgo(a.createdAt)}</span> },
     { key: 'actor', label: 'Actor', render: (a) => (<div><p className="text-gray-900">{a.actor?.name || '—'}</p><p className="text-xs text-gray-400 capitalize">{label(a.actor?.role || a.actor?.type)}</p></div>) },
     { key: 'action', label: 'Action', render: (a) => <span className="font-mono text-xs">{a.action}</span> },
-    { key: 'entity', label: 'Entity', render: (a) => (a.entity ? `${a.entity}${a.meta?.number ? ` ${a.meta.number}` : ''}` : '—') },
+    { key: 'entity', label: 'Entity', render: (a) => <EntityCell a={a} /> },
     { key: 'store', label: 'Store', render: (a) => storeById.get(a.store_id)?.code || '—' },
     { key: 'ip', label: 'IP', render: (a) => <span className="text-xs text-gray-400">{a.ip || '—'}</span> },
   ];

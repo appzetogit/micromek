@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   Button, Card, DataTable, Field, Input, Modal, Pager, PageShell, Select, StatusBadge, Textarea, Toolbar,
-  inr, timeAgo, useApi, useDebounced,
+  dateOnly, dateTime, inr, timeAgo, useApi, useDebounced,
 } from '../platform/kit';
-import { createCustomer, listCustomers, updateCustomer } from '../../services/commerceApi';
+import { createCustomer, listCustomerOrders, listCustomers, updateCustomer } from '../../services/commerceApi';
 import { ADDRESS_FIELDS, AddressFields, MODULE, ORDER_TYPES, Toggle, emptyAddress, useStores, useToastAction } from './common';
 
 const CommerceCustomers = () => {
@@ -14,6 +15,7 @@ const CommerceCustomers = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState(null);
+  const [viewing, setViewing] = useState(null);
   const q = useDebounced(search);
   const { data, loading, error, reload } = useApi(() => listCustomers({ type, search: q, page, limit: 20 }), [type, q, page]);
   const storeById = new Map(stores.stores.map((s) => [s._id, s]));
@@ -41,13 +43,80 @@ const CommerceCustomers = () => {
             <Select placeholder="All" options={ORDER_TYPES} value={type} onChange={(e) => { setType(e.target.value); setPage(1); }} />
           </Field>
         </Toolbar>
-        <DataTable columns={columns} rows={data?.items || []} loading={loading} error={error} empty="No customers found" onRowClick={setEditing} />
+        <DataTable columns={columns} rows={data?.items || []} loading={loading} error={error} empty="No customers found" onRowClick={setViewing} />
         <Pager data={data} onPage={setPage} />
       </Card>
+      {viewing ? (
+        <CustomerDetailModal
+          key={viewing._id}
+          customer={viewing}
+          storeName={(id) => storeById.get(id)?.name}
+          onClose={() => setViewing(null)}
+          onEdit={() => { setEditing(viewing); setViewing(null); }}
+        />
+      ) : null}
       {editing ? (
         <CustomerModal key={editing._id || 'new'} customer={editing} storeOptions={stores.options} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); reload(); }} />
       ) : null}
     </PageShell>
+  );
+};
+
+/** Balance figures + paged order history (GET /customers/:id and /customers/:id/orders). */
+const CustomerDetailModal = ({ customer, storeName: storeLabel, onClose, onEdit }) => {
+  const [page, setPage] = useState(1);
+  const { data, loading, error } = useApi(() => listCustomerOrders(customer._id, { page, limit: 10 }), [customer._id, page]);
+  const s = data?.summary;
+  const figure = (k, v, hint) => (
+    <div className="rounded-lg border border-gray-200 px-3 py-2">
+      <p className="text-xs text-gray-500">{k}</p>
+      <p className="text-base font-semibold text-gray-900">{v}</p>
+      {hint ? <p className="text-[11px] text-gray-400">{hint}</p> : null}
+    </div>
+  );
+  const columns = [
+    {
+      key: 'number', label: 'Order', render: (o) => (
+        <Link to={`/admin/commerce/orders/${o._id}`} className="font-medium text-indigo-600 hover:underline whitespace-nowrap">{o.number}</Link>
+      ),
+    },
+    { key: 'createdAt', label: 'Date', render: (o) => <span className="whitespace-nowrap">{dateTime(o.createdAt)}</span> },
+    { key: 'store', label: 'Store', render: (o) => o.store_id?.code || '—' },
+    { key: 'total', label: 'Total', align: 'right', render: (o) => inr(o.totals?.grand_total) },
+    { key: 'paid', label: 'Paid', align: 'right', render: (o) => inr(o.payment?.paid_amount) },
+    { key: 'payment', label: 'Payment', render: (o) => <div className="flex items-center gap-1"><StatusBadge status={o.payment?.status} /><span className="text-xs text-gray-400 capitalize">{o.payment?.method}</span></div> },
+    { key: 'status', label: 'Status', render: (o) => <StatusBadge status={o.status} /> },
+  ];
+  return (
+    <Modal
+      open
+      wide
+      title={customer.business_name || customer.name}
+      onClose={onClose}
+      footer={(
+        <>
+          <Button variant="secondary" onClick={onClose}>Close</Button>
+          <Button icon={Pencil} onClick={onEdit}>Edit customer</Button>
+        </>
+      )}
+    >
+      <p className="text-sm text-gray-500">
+        {[customer.phone, customer.email, customer.gstin, storeLabel(customer.home_store_id) ? `home store ${storeLabel(customer.home_store_id)}` : 'shared customer'].filter(Boolean).join(' · ')}
+      </p>
+      {s ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {figure('Total billed', inr(s.billed), `${s.billed_orders} of ${s.orders} orders`)}
+          {figure('Paid', inr(s.paid), s.refunded ? `${inr(s.refunded)} refunded` : null)}
+          {figure('Outstanding', inr(s.outstanding), s.credit_limit ? `credit ${inr(s.credit_due)} of ${inr(s.credit_limit)} limit` : `credit due ${inr(s.credit_due)}`)}
+          {figure('Last order', s.last_order_at ? dateOnly(s.last_order_at) : '—', s.refund_due ? `${inr(s.refund_due)} refund due` : null)}
+        </div>
+      ) : null}
+      <p className="text-[11px] text-gray-400">Cancelled and returned orders are not billed. Outstanding is the unpaid part of open orders.</p>
+      <div className="-mx-5 border-t border-gray-100">
+        <DataTable columns={columns} rows={data?.items || []} loading={loading} error={error} empty="No orders yet" />
+        <Pager data={data} onPage={setPage} />
+      </div>
+    </Modal>
   );
 };
 

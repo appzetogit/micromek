@@ -7,7 +7,7 @@ import {
   errorMessage, timeAgo, useAction, useApi, useDebounced,
 } from '../platform/kit';
 import { createEvVehicle, listEvVehicles } from '../../services/evApi';
-import { FranchiseSelect, SocBar, VEHICLE_STATUSES } from './evShared';
+import { FranchiseSelect, LinkPicker, SocBar, VEHICLE_STATUSES } from './evShared';
 
 const CONDITIONS = [
   { value: 'charging', label: 'Charging' },
@@ -17,6 +17,7 @@ const CONDITIONS = [
 const EMPTY = {
   registration_no: '', provider: '', external_id: '', make: '', model: '',
   battery_capacity_kwh: '', low_battery_threshold_pct: '20', franchise_id: '',
+  driver_id: '', fleet_vehicle_id: '', service_location_id: '',
 };
 
 const AddVehicleModal = ({ open, onClose, onCreated }) => {
@@ -33,7 +34,7 @@ const AddVehicleModal = ({ open, onClose, onCreated }) => {
       };
       if (form.provider.trim()) body.provider = form.provider.trim();
       if (form.battery_capacity_kwh !== '') body.battery_capacity_kwh = Number(form.battery_capacity_kwh);
-      if (form.franchise_id) body.franchise_id = form.franchise_id;
+      for (const key of ['franchise_id', 'driver_id', 'fleet_vehicle_id', 'service_location_id']) if (form[key]) body[key] = form[key];
       return createEvVehicle(body);
     },
     {
@@ -68,6 +69,9 @@ const AddVehicleModal = ({ open, onClose, onCreated }) => {
         <Field label="Model"><Input value={form.model} onChange={set('model')} /></Field>
         <Field label="Low battery threshold (%)" hint="1–99"><Input type="number" min="1" max="99" value={form.low_battery_threshold_pct} onChange={set('low_battery_threshold_pct')} /></Field>
         <Field label="Franchise"><FranchiseSelect value={form.franchise_id} onChange={(v) => setForm((f) => ({ ...f, franchise_id: v }))} /></Field>
+        {[['driver', 'driver_id'], ['fleet_vehicle', 'fleet_vehicle_id'], ['service_location', 'service_location_id']].map(([type, key]) => (
+          <LinkPicker key={`${key}-${open}`} type={type} value={form[key]} onChange={(id) => setForm((f) => ({ ...f, [key]: id }))} />
+        ))}
       </div>
     </Modal>
   );

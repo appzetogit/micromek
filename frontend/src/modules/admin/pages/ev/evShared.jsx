@@ -1,11 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { useState } from 'react';
 import { GoogleMap, InfoWindowF, MarkerF, PolylineF } from '@react-google-maps/api';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { HAS_VALID_GOOGLE_MAPS_KEY, INDIA_CENTER, useBaseGoogleMapsLoader } from '../../utils/googleMaps';
-import { listFranchiseOptions } from '../../services/evApi';
-import { Field, Input, Select, num, pct, timeAgo, useApi } from '../platform/kit';
+import { evLookup, listFranchiseOptions } from '../../services/evApi';
+import { Field, Input, Select, labelClass, num, pct, timeAgo, useApi, useDebounced } from '../platform/kit';
 
 /// Shared bits for the EV fleet pages: vehicle state colours, SOC bar, date
 /// ranges, maps (Google Maps when a key is configured) and a tiny SVG chart.
@@ -99,6 +99,75 @@ export const FranchiseSelect = ({ value, onChange, placeholder = 'No franchise' 
 
 /** Id of a populated ref or a raw id. */
 export const refId = (v) => (v && typeof v === 'object' ? v._id : v) || '';
+
+/** Display label of a populated link, matching GET /admin/ev/lookups. */
+export const linkLabel = (type, v) => {
+  if (!v || typeof v !== 'object') return '';
+  if (type === 'driver') return [v.name, v.phone, v.vehicleNumber].filter(Boolean).join(' · ');
+  if (type === 'fleet_vehicle') return [v.license_plate_number, [v.car_brand, v.car_model].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+  return v.name || v.service_location_name || '';
+};
+
+const LINK_TITLES = {
+  driver: { label: 'Driver', placeholder: 'Search name, phone or vehicle number' },
+  fleet_vehicle: { label: 'Fleet vehicle', placeholder: 'Search plate, brand or model' },
+  service_location: { label: 'Service location', placeholder: 'Search location name' },
+};
+
+/**
+ * Searchable picker for a taxi-module link (GET /admin/ev/lookups). `value` is the id ('' = none),
+ * `initialLabel` the label of the saved link if already known; onChange(id, label). Clearing
+ * sends '' which unlinks on save.
+ */
+export const LinkPicker = ({ type, value, initialLabel = '', onChange }) => {
+  const [term, setTerm] = useState('');
+  const [picked, setPicked] = useState(initialLabel);
+  const q = useDebounced(term);
+  const titles = LINK_TITLES[type];
+  // Label a saved id that came without a populated object.
+  const saved = useApi(
+    () => (value && !picked ? evLookup(type, { id: value }) : Promise.resolve({ data: [] })),
+    [type, value, Boolean(picked)],
+  );
+  const results = useApi(
+    () => (!value && q ? evLookup(type, { search: q }) : Promise.resolve({ data: [] })),
+    [type, q, Boolean(value)],
+  );
+  const shown = picked || saved.data?.[0]?.label || (saved.loading ? 'Loading…' : value);
+  const pick = (item) => { setPicked(item.label); setTerm(''); onChange(item.id, item.label); };
+  const clear = () => { setPicked(''); onChange('', ''); };
+
+  return (
+    <div>
+      <span className={labelClass}>{titles.label}</span>
+      {value ? (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 px-3 py-2">
+          <span className="text-sm text-gray-800 truncate" title={value}>{shown}</span>
+          <button type="button" onClick={clear} className="text-xs text-red-600 hover:underline shrink-0">Clear</button>
+        </div>
+      ) : (
+        <>
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Input className="pl-8" placeholder={titles.placeholder} value={term} onChange={(e) => setTerm(e.target.value)} />
+          </div>
+          {q ? (
+            <div className="mt-1 rounded-lg border border-gray-200 divide-y divide-gray-100 max-h-48 overflow-y-auto">
+              {results.loading ? <p className="px-3 py-2 text-xs text-gray-400">Searching…</p> : null}
+              {results.error ? <p className="px-3 py-2 text-xs text-red-600">{results.error}</p> : null}
+              {!results.loading && !results.error && !(results.data || []).length ? <p className="px-3 py-2 text-xs text-gray-400">No matches</p> : null}
+              {(results.data || []).map((item) => (
+                <button key={item.id} type="button" onClick={() => pick(item)} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 truncate">
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          ) : <span className="block mt-1 text-[11px] text-gray-400">Not linked</span>}
+        </>
+      )}
+    </div>
+  );
+};
 
 // ---------- maps ----------
 
