@@ -1,0 +1,147 @@
+import { Router } from 'express';
+import { authenticate } from '../../taxi/middlewares/authMiddleware.js';
+import { loginRateLimit } from '../../taxi/middlewares/rateLimitMiddleware.js';
+import { adminGuard } from '../../shared/guards.js';
+import { adminScope, customerScope, franchiseScope, staffAuth } from '../middlewares/commerceAuth.js';
+import { requirePerm as can } from '../services/accessService.js';
+import * as cat from '../controllers/catalogController.js';
+import * as ord from '../controllers/orderController.js';
+import * as st from '../controllers/staffController.js';
+import { shippingWebhook } from '../controllers/webhookController.js';
+
+export { startCommerceJobs } from '../services/jobs.js';
+export { setPlatformDeliveryBooker } from '../shipping/index.js';
+
+export const commerceRouter = Router();
+
+// ---------- shipping webhooks (shared secret) ----------
+commerceRouter.post('/webhooks/shipping/:provider', shippingWebhook);
+
+// ---------- store staff (/commerce/staff) ----------
+const staff = Router();
+staff.post('/auth/login', loginRateLimit, st.staffLogin);
+staff.use(staffAuth);
+staff.get('/me', st.staffMe);
+staff.post('/me/password', st.staffChangePassword);
+staff.get('/stores', cat.myStores);
+staff.get('/products', can('catalog.view'), cat.listProducts);
+staff.get('/inventory', can('stock.view'), cat.listInventory);
+staff.get('/inventory/movements', can('stock.view'), cat.listMovements);
+staff.post('/inventory/adjust', can('stock.adjust'), cat.adjustInventory);
+staff.post('/inventory/transfer', can('stock.transfer'), cat.transferInventory);
+staff.post('/inventory/reorder-level', can('stock.adjust'), cat.setReorderLevel);
+staff.get('/customers', can('customers.view'), st.listCustomers);
+staff.post('/customers', can('customers.manage'), st.createCustomer);
+staff.get('/customers/:id', can('customers.view'), st.getCustomer);
+staff.patch('/customers/:id', can('customers.manage'), st.updateCustomer);
+staff.get('/orders', can('orders.view'), ord.listOrders);
+staff.post('/orders', can('orders.create'), ord.createManualOrder);
+staff.get('/orders/:id', can('orders.view'), ord.getOrder);
+staff.post('/orders/:id/status', can('orders.transition'), ord.setOrderStatus);
+staff.post('/orders/:id/payments', can('payments.record'), ord.addPayment);
+staff.post('/orders/:id/invoice', can('invoices.manage'), ord.issueOrderInvoice);
+staff.post('/orders/:id/shipping-rates', can('shipments.manage'), ord.shippingRates);
+staff.post('/orders/:id/shipments', can('shipments.manage'), ord.createShipment);
+staff.get('/invoices', can('invoices.view'), ord.listInvoices);
+staff.get('/invoices/:id/pdf', can('invoices.view'), ord.invoicePdf);
+staff.get('/shipments', can('shipments.view'), ord.listShipments);
+staff.get('/shipments/:id', can('shipments.view'), ord.getShipment);
+staff.post('/shipments/:id/refresh', can('shipments.view'), ord.refreshShipment);
+staff.post('/shipments/:id/cancel', can('shipments.manage'), ord.cancelShipmentCtl);
+staff.post('/shipments/:id/status', can('shipments.manage'), ord.setLocalShipmentStatus);
+staff.get('/activity', can('activity.view'), st.listActivity);
+staff.get('/reports/sales', can('activity.view'), st.reportSales);
+staff.get('/reports/low-stock', can('stock.view'), st.reportLowStock);
+commerceRouter.use('/commerce/staff', staff);
+
+// ---------- public catalogue + app customers (/commerce) ----------
+const pub = Router();
+pub.get('/stores', cat.publicStores);
+pub.get('/categories', cat.publicCategories);
+pub.get('/products', cat.listProducts);
+pub.get('/products/:idOrSlug', cat.getProduct);
+
+const me = [authenticate(['user']), customerScope];
+pub.get('/me', ...me, ord.myProfile);
+pub.post('/me/addresses', ...me, ord.addMyAddress);
+pub.delete('/me/addresses/:addressId', ...me, ord.removeMyAddress);
+pub.get('/cart', ...me, ord.getCart);
+pub.put('/cart', ...me, ord.updateCart);
+pub.post('/checkout', ...me, ord.checkout);
+pub.get('/orders', ...me, ord.myOrders);
+pub.get('/orders/:id', ...me, ord.myOrder);
+pub.post('/orders/:id/pay', ...me, ord.payMyOrder);
+pub.post('/orders/:id/verify-payment', ...me, ord.verifyMyPayment);
+pub.post('/orders/:id/cancel', ...me, ord.cancelMyOrder);
+pub.get('/orders/:id/invoice', ...me, ord.myInvoicePdf);
+commerceRouter.use('/commerce', pub);
+
+// ---------- admin (/admin/commerce) ----------
+const admin = Router();
+admin.use(...adminGuard('commerce.view'), adminScope);
+admin.get('/stores', cat.adminListStores);
+admin.post('/stores', cat.adminCreateStore);
+admin.get('/stores/:id', cat.adminGetStore);
+admin.patch('/stores/:id', cat.adminUpdateStore);
+admin.post('/stores/:id/franchise', cat.adminAllocateStore);
+admin.delete('/stores/:id', cat.adminDeactivateStore);
+admin.get('/categories', cat.adminListCategories);
+admin.post('/categories', cat.adminSaveCategory);
+admin.patch('/categories/:id', cat.adminSaveCategory);
+admin.delete('/categories/:id', cat.adminDeleteCategory);
+admin.get('/products', cat.listProducts);
+admin.post('/products', cat.adminCreateProduct);
+admin.get('/products/:id', cat.adminGetProduct);
+admin.patch('/products/:id', cat.adminUpdateProduct);
+admin.delete('/products/:id', cat.adminDeactivateProduct);
+admin.get('/inventory', cat.listInventory);
+admin.get('/inventory/movements', cat.listMovements);
+admin.post('/inventory/adjust', cat.adjustInventory);
+admin.post('/inventory/transfer', cat.transferInventory);
+admin.post('/inventory/reorder-level', cat.setReorderLevel);
+admin.get('/staff', st.adminListStaff);
+admin.post('/staff', st.adminCreateStaff);
+admin.patch('/staff/:id', st.adminUpdateStaff);
+admin.delete('/staff/:id', st.adminDeactivateStaff);
+admin.get('/customers', st.listCustomers);
+admin.post('/customers', st.createCustomer);
+admin.get('/customers/:id', st.getCustomer);
+admin.patch('/customers/:id', st.updateCustomer);
+admin.get('/orders', ord.listOrders);
+admin.post('/orders', ord.createManualOrder);
+admin.get('/orders/:id', ord.getOrder);
+admin.post('/orders/:id/status', ord.setOrderStatus);
+admin.post('/orders/:id/payments', ord.addPayment);
+admin.post('/orders/:id/invoice', ord.issueOrderInvoice);
+admin.post('/orders/:id/shipping-rates', ord.shippingRates);
+admin.post('/orders/:id/shipments', ord.createShipment);
+admin.get('/invoices', ord.listInvoices);
+admin.get('/invoices/:id/pdf', ord.invoicePdf);
+admin.get('/shipments', ord.listShipments);
+admin.get('/shipments/:id', ord.getShipment);
+admin.post('/shipments/:id/refresh', ord.refreshShipment);
+admin.post('/shipments/:id/cancel', ord.cancelShipmentCtl);
+admin.post('/shipments/:id/status', ord.setLocalShipmentStatus);
+admin.get('/reports/sales', st.reportSales);
+admin.get('/reports/top-products', st.reportTopProducts);
+admin.get('/reports/low-stock', st.reportLowStock);
+admin.get('/reports/staff', st.reportStaff);
+admin.get('/activity', st.listActivity);
+// Only claim /admin/commerce; everything else under /admin falls through to the other routers.
+const adminMount = Router().use('/commerce', admin);
+commerceRouter.use('/admin', (req, res, next) => (/^\/commerce(\/|$)/.test(req.path) ? adminMount(req, res, next) : next()));
+
+// ---------- franchise panel (/franchise/commerce), read-only ----------
+const fr = Router();
+fr.use(authenticate(['franchise']), franchiseScope);
+fr.get('/stores', cat.myStores);
+fr.get('/orders', can('orders.view'), ord.listOrders);
+fr.get('/orders/:id', can('orders.view'), ord.getOrder);
+fr.get('/invoices', can('invoices.view'), ord.listInvoices);
+fr.get('/invoices/:id/pdf', can('invoices.view'), ord.invoicePdf);
+fr.get('/inventory', can('stock.view'), cat.listInventory);
+fr.get('/reports/sales', can('reports.view'), st.reportSales);
+fr.get('/reports/top-products', can('reports.view'), st.reportTopProducts);
+fr.get('/reports/low-stock', can('reports.view'), st.reportLowStock);
+const frMount = Router().use('/commerce', fr);
+commerceRouter.use('/franchise', (req, res, next) => (/^\/commerce(\/|$)/.test(req.path) ? frMount(req, res, next) : next()));
