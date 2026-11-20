@@ -1,0 +1,51 @@
+/*
+ * MIKROMEK brand touches for the admin panel. The colour remap of accent
+ * classes is in adminBrand.generated.css; this file holds the few hand-made
+ * rules: page-title type, the sidebar edge and focus colour.
+ *
+ * Barlow Condensed is loaded in index.html (shared with the public site).
+ */
+
+/* Page titles in the brand's condensed capitals, as on the website. */
+html[data-admin-theme] body .redigo-admin-root main h1,
+html[data-admin-theme] body .redigo-admin-root main h1 * {
+  font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+}
+html[data-admin-theme] body .redigo-admin-root main h1 {
+  font-size: 1.85rem !important;
+}
+
+/* The brand's red rule, as a thin edge on the dark sidebar. */
+html[data-admin-theme] body .redigo-admin-root aside {
+  box-shadow: inset -3px 0 0 0 #e1251b !important;
+}
+
+/* Keyboard focus in brand red. */
+html[data-admin-theme] body .redigo-admin-root :focus-visible {
+  outline-color: #e1251b;
+}
+
+/* Text selection. */
+.redigo-admin-root ::selection {
+  background: rgba(225, 37, 27, 0.22);
+}
+
+/* KPI tiles on the dashboards are ink or brand red (see MainDashboard,
+   AdminEarnings, Admins). Their labels and values are headings that the theme
+   colours dark; on these tiles everything inside is white. */
+html[data-admin-theme] body .redigo-admin-root [class*='!bg-[#1c1e22]'],
+html[data-admin-theme] body .redigo-admin-root [class*='!bg-[#1c1e22]'] *,
+html[data-admin-theme] body .redigo-admin-root [class*='!bg-[#e1251b]'],
+html[data-admin-theme] body .redigo-admin-root [class*='!bg-[#e1251b]'] * {
+  color: #ffffff !important;
+}
+html[data-admin-theme] body .redigo-admin-root [class*='!bg-[#1c1e22]'] .card-label {
+  color: #9aa0aa !important;
+}
+html[data-admin-theme='dark'] body .redigo-admin-root [class*='!bg-[#1c1e22]'] {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+}

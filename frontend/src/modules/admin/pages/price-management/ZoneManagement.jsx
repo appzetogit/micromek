@@ -851,16 +851,16 @@ const ZoneManagement = ({ mode: initialMode = "list" }) => {
                                  ],
                                },
                                polygonOptions: {
-                                 fillColor: '#FFC400',
+                                 fillColor: '#e1251b',
                                  fillOpacity: 0.15,
-                                 strokeColor: '#FFC400',
+                                 strokeColor: '#e1251b',
                                  strokeWeight: 2,
                                  editable: true,
                                },
                                circleOptions: {
-                                 fillColor: '#FFC400',
+                                 fillColor: '#e1251b',
                                  fillOpacity: 0.12,
-                                 strokeColor: '#FFC400',
+                                 strokeColor: '#e1251b',
                                  strokeWeight: 2,
                                  editable: true,
                                },
@@ -870,7 +870,7 @@ const ZoneManagement = ({ mode: initialMode = "list" }) => {
                            {boundaryMode === 'polygon' && polygonCoords.length > 0 && (
                              <Polygon
                                paths={polygonCoords}
-                               options={{ fillColor: '#FFC400', strokeColor: '#FFC400', strokeWeight: 2, fillOpacity: 0.25, editable: true, draggable: true }}
+                               options={{ fillColor: '#e1251b', strokeColor: '#e1251b', strokeWeight: 2, fillOpacity: 0.25, editable: true, draggable: true }}
                                onLoad={(polygon) => {
                                  polygonListenersRef.current.forEach((listener) => listener?.remove?.());
                                  polygonListenersRef.current = [];
@@ -896,8 +896,8 @@ const ZoneManagement = ({ mode: initialMode = "list" }) => {
                                center={circleCenter}
                                radius={Number(circleRadiusMeters)}
                                options={{
-                                 fillColor: '#FFC400',
-                                 strokeColor: '#FFC400',
+                                 fillColor: '#e1251b',
+                                 strokeColor: '#e1251b',
                                  strokeWeight: 2,
                                  fillOpacity: 0.18,
                                  editable: true,

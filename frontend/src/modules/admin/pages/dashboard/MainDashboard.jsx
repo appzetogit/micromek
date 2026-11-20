@@ -178,7 +178,7 @@ const MainDashboard = () => {
     return [
       { label: 'Completed', value: completed, color: '#22C55E', percent: Math.round((completed / total) * 100) },
       { label: 'Cancelled', value: cancelled, color: '#EF4444', percent: Math.round((cancelled / total) * 100) },
-      { label: 'Pending', value: pending, color: '#FFC400', percent: Math.round((pending / total) * 100) }
+      { label: 'Pending', value: pending, color: '#f59e0b', percent: Math.round((pending / total) * 100) }
     ];
   }, [todayTrips]);
 
@@ -246,16 +246,16 @@ const MainDashboard = () => {
         {/* 1. LIVE PLATFORM OVERVIEW (10 KPI Cards) */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {[
-            { label: "Total Customers", value: totalUsers, icon: Users, cardBg: "!bg-violet-500" },
-            { label: "Total Drivers", value: totalDrivers, icon: Car, cardBg: "!bg-sky-500" },
-            { label: "Approved Drivers", value: approvedDrivers, icon: UserCheck, cardBg: "!bg-emerald-500" },
-            { label: "Vendors", value: totalOwners, icon: Building2, cardBg: "!bg-rose-500" },
-            { label: "Online Customers", value: live.onlineCustomers ?? 0, icon: Sparkles, cardBg: "!bg-orange-500" },
-            { label: "Ongoing Trips", value: live.ongoingTrips ?? 0, icon: Activity, cardBg: "!bg-blue-500" },
-            { label: "Today's Revenue", value: `₹${currency(todayEarnings.total)}`, icon: IndianRupee, cardBg: "!bg-emerald-500" },
-            { label: "Online Drivers", value: live.onlineDrivers ?? 0, icon: Server, cardBg: "!bg-violet-500" },
-            { label: "Fleet Utilization", value: `${fleetUtilization}%`, icon: TrendingUp, cardBg: "!bg-teal-500" },
-            { label: "Pending Approvals", value: live.pendingApprovals ?? 0, icon: Clock, cardBg: "!bg-red-500" }
+            { label: "Total Customers", value: totalUsers, icon: Users, cardBg: "!bg-[#1c1e22]" },
+            { label: "Total Drivers", value: totalDrivers, icon: Car, cardBg: "!bg-[#1c1e22]" },
+            { label: "Approved Drivers", value: approvedDrivers, icon: UserCheck, cardBg: "!bg-[#1c1e22]" },
+            { label: "Vendors", value: totalOwners, icon: Building2, cardBg: "!bg-[#1c1e22]" },
+            { label: "Online Customers", value: live.onlineCustomers ?? 0, icon: Sparkles, cardBg: "!bg-[#1c1e22]" },
+            { label: "Ongoing Trips", value: live.ongoingTrips ?? 0, icon: Activity, cardBg: "!bg-[#1c1e22]" },
+            { label: "Today's Revenue", value: `₹${currency(todayEarnings.total)}`, icon: IndianRupee, cardBg: "!bg-[#e1251b]" },
+            { label: "Online Drivers", value: live.onlineDrivers ?? 0, icon: Server, cardBg: "!bg-[#1c1e22]" },
+            { label: "Fleet Utilization", value: `${fleetUtilization}%`, icon: TrendingUp, cardBg: "!bg-[#1c1e22]" },
+            { label: "Pending Approvals", value: live.pendingApprovals ?? 0, icon: Clock, cardBg: "!bg-[#e1251b]" }
           ].map((kpi, idx) => (
             <div key={idx} className={`admin-card !p-4 border-none !text-white hover:scale-[1.02] transition-transform shadow-lg ${kpi.cardBg}`}>
               <div className="flex items-center justify-between mb-2">
@@ -327,15 +327,15 @@ const MainDashboard = () => {
                 <div className="relative pt-2">
                   <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full overflow-visible">
                     <path d={areaPath} fill="rgba(255, 196, 0, 0.05)" />
-                    <path d={linePath} fill="none" stroke="#FFC400" strokeWidth="2.5" />
+                    <path d={linePath} fill="none" stroke="#e1251b" strokeWidth="2.5" />
                     {revenuePoints.map((pt, idx) => (
                       <circle
                         key={idx}
                         cx={pt.x}
                         cy={pt.y}
                         r={hoveredRevenueIndex === idx ? 6 : 4}
-                        fill={hoveredRevenueIndex === idx ? '#FFC400' : '#FFFFFF'}
-                        stroke="#FFC400"
+                        fill={hoveredRevenueIndex === idx ? '#e1251b' : '#FFFFFF'}
+                        stroke="#e1251b"
                         strokeWidth="2"
                         className="cursor-pointer"
                         onMouseEnter={() => setHoveredRevenueIndex(idx)}

@@ -867,7 +867,7 @@ const PoolingManager = ({ mode: propMode }) => {
         </button>
 
         <div className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
-          <div className="border-b border-slate-100 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-900 px-6 py-6 text-white lg:px-8">
+          <div className="border-b border-slate-100 bg-gradient-to-r from-slate-900 via-slate-800 to-red-950 px-6 py-6 text-white lg:px-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.3em] text-indigo-200">Pooling Planner</p>
@@ -1272,7 +1272,7 @@ const PoolingManager = ({ mode: propMode }) => {
                 </div>
               </div>
 
-              <div className="rounded-[28px] border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-slate-50 p-5 shadow-sm">
+              <div className="rounded-[28px] border border-indigo-100 bg-gradient-to-br from-red-50 via-white to-slate-50 p-5 shadow-sm">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Live Summary</p>
                 <div className="mt-4 space-y-3">
                   <div className="flex items-center gap-3">

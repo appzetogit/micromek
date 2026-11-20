@@ -346,7 +346,7 @@ const DriverReferralSettings = () => {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-dashed border-yellow-200 bg-gradient-to-br from-yellow-50 to-white p-6">
+              <div className="rounded-2xl border border-dashed border-yellow-200 bg-gradient-to-br from-red-50 to-white p-6">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-white text-yellow-600 border border-yellow-100 flex items-center justify-center shadow-sm">
                     <Share2 size={22} />

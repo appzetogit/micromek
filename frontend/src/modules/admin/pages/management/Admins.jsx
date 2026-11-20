@@ -396,7 +396,7 @@ const Admins = () => {
     });
 
     const colors = {
-      'Super Admin': '#FFC400',
+      'Super Admin': '#e1251b',
       'Operations': '#3B82F6',
       'Finance': '#10B981',
       'Support': '#8B5CF6',
@@ -755,12 +755,12 @@ const Admins = () => {
         {/* KPI CARDS ROW */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           {[
-            { label: "Total Admins", value: stats.total, icon: Users, cardBg: "!bg-violet-500", trend: `${recorded.created30} added in last 30 days`, isTrendPositive: true },
-            { label: "Login Success Rate", value: recorded.rateLabel, icon: CheckCircle, cardBg: "!bg-emerald-500", trend: recorded.signInsText, isTrendPositive: true },
-            { label: "Signed In Today", value: recorded.signedInToday, icon: Laptop, cardBg: "!bg-blue-500", trend: `${stats.active} active accounts`, isTrendPositive: true },
-            { label: "Password Resets", value: recorded.resets30, icon: KeyRound, cardBg: "!bg-fuchsia-500", trend: recorded.resetsTrend, isTrendPositive: false },
-            { label: "Permission Changes", value: recorded.permissionChanges30, icon: Info, cardBg: "!bg-orange-500", trend: recorded.permissionTrend, isTrendPositive: true },
-            { label: "Suspended", value: stats.suspended, icon: UserMinus, cardBg: "!bg-rose-500", trend: `${recorded.suspended30} suspended in last 30 days`, isTrendPositive: false }
+            { label: "Total Admins", value: stats.total, icon: Users, cardBg: "!bg-[#1c1e22]", trend: `${recorded.created30} added in last 30 days`, isTrendPositive: true },
+            { label: "Login Success Rate", value: recorded.rateLabel, icon: CheckCircle, cardBg: "!bg-[#1c1e22]", trend: recorded.signInsText, isTrendPositive: true },
+            { label: "Signed In Today", value: recorded.signedInToday, icon: Laptop, cardBg: "!bg-[#1c1e22]", trend: `${stats.active} active accounts`, isTrendPositive: true },
+            { label: "Password Resets", value: recorded.resets30, icon: KeyRound, cardBg: "!bg-[#1c1e22]", trend: recorded.resetsTrend, isTrendPositive: false },
+            { label: "Permission Changes", value: recorded.permissionChanges30, icon: Info, cardBg: "!bg-[#1c1e22]", trend: recorded.permissionTrend, isTrendPositive: true },
+            { label: "Suspended", value: stats.suspended, icon: UserMinus, cardBg: "!bg-[#e1251b]", trend: `${recorded.suspended30} suspended in last 30 days`, isTrendPositive: false }
           ].map((insight, idx) => (
             <motion.div
               key={idx}
@@ -836,7 +836,7 @@ const Admins = () => {
                     {/* Shimmer Area Fill */}
                     <path d={areaPath} fill="rgba(255, 196, 0, 0.05)" />
                     {/* Area Outline */}
-                    <path d={linePath} fill="none" stroke="#FFC400" strokeWidth="2.5" />
+                    <path d={linePath} fill="none" stroke="#e1251b" strokeWidth="2.5" />
 
                     {/* Nodes */}
                     {growthPoints.map((pt, idx) => (
@@ -845,8 +845,8 @@ const Admins = () => {
                         cx={pt.x}
                         cy={pt.y}
                         r={hoveredGrowthIndex === idx ? 6 : 4}
-                        fill={hoveredGrowthIndex === idx ? '#FFC400' : '#FFFFFF'}
-                        stroke="#FFC400"
+                        fill={hoveredGrowthIndex === idx ? '#e1251b' : '#FFFFFF'}
+                        stroke="#e1251b"
                         strokeWidth="2"
                         className="cursor-pointer transition-all"
                         onMouseEnter={() => setHoveredGrowthIndex(idx)}

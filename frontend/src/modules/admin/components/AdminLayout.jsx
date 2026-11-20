@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import '../styles/adminTheme.css';
 import '../styles/adminDarkTheme.css';
 import '../styles/adminDarkTheme.generated.css';
+// Brand layer last: re-points the yellow/indigo accents at MIKROMEK red.
+import '../styles/adminBrand.generated.css';
+import '../styles/adminBrand.css';
 import { socketService } from '../../../shared/api/socket';
 import { useSettings } from '../../../shared/context/SettingsContext';
 import { getSupportConversations, markSupportMessagesRead } from '../../shared/chat/chatApi';
@@ -290,7 +293,7 @@ const SidebarItem = ({ icon, label, path, isCollapsed, sidebarTextColor, unreadC
     to={path}
     end
     className={({ isActive }) =>
-      `group relative flex items-center gap-3.5 px-4 py-2 rounded-xl transition-all duration-200 ${isActive ? 'text-[#05070D] bg-[#FFC400]' : 'hover:bg-amber-100/50 hover:text-slate-900'
+      `group relative flex items-center gap-3.5 px-4 py-2 rounded-xl transition-all duration-200 ${isActive ? 'text-[#05070D] bg-[#FFC400]' : 'hover:bg-white/5'
       }`
     }
     style={({ isActive }) => ({
@@ -519,7 +522,7 @@ const NestedGroup = ({
                   }
                   style={({ isActive: childActive }) => ({
                     color: childActive ? '#05070D' : sidebarTextColor,
-                    backgroundColor: childActive ? '#FFC400' : 'transparent',
+                    backgroundColor: childActive ? '#e1251b' : 'transparent',
                   })}
                 >
                   {({ isActive: childActive }) => (
@@ -1325,14 +1328,14 @@ const AdminLayout = () => {
           } ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
         <div className="flex h-full flex-col">
-          <div className="group/sidebar-head relative mb-2 flex h-14 items-center border-b border-amber-200/50 px-5">
+          <div className="group/sidebar-head relative mb-2 flex h-14 items-center border-b border-white/10 px-5">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-200 bg-amber-100 p-1.5 transition-all duration-300 group-hover/sidebar-head:scale-105 shadow-sm">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white p-1 transition-all duration-300 group-hover/sidebar-head:scale-105 shadow-sm">
                   {settings.general?.logo || settings.customization?.logo ? (
                     <img src={settings.general?.logo || settings.customization?.logo} alt={appName} className="h-full w-full object-contain" />
                   ) : (
-                    <Zap size={20} className="text-amber-600 fill-amber-600" />
+                    <img src="/mikromek-logo.jpg" alt={appName} className="h-full w-full object-contain" />
                   )}
                 </div>
                 <div className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-indigo-900" />
@@ -1343,12 +1346,12 @@ const AdminLayout = () => {
                   animate={{ opacity: 1, x: 0 }}
                   className="flex flex-col"
                 >
-                  <h3 className="text-sm font-bold leading-tight text-slate-900 tracking-tight">
+                  <h3 className="text-[17px] font-extrabold leading-tight !text-white tracking-wide" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
                     {mode === OWNER_MODE ? 'Owner Panel' : appName || 'MIKROMEK'}
                   </h3>
                   <div className="mt-0.5 flex items-center gap-1.5">
                     <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
-                      {mode === OWNER_MODE ? 'Fleet Console' : 'System Hub'}
+                      {mode === OWNER_MODE ? 'Fleet Console' : 'Power Full Service'}
                     </span>
                   </div>
                 </motion.div>

@@ -1259,7 +1259,7 @@ const RentalVehicleTypes = ({ mode: propMode }) => {
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-[24px] border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-slate-50 p-4">
+            <div className="rounded-[24px] border border-indigo-100 bg-gradient-to-br from-red-50 via-white to-slate-50 p-4">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Live Summary</p>
               <div className="mt-4 flex items-center gap-3">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm">

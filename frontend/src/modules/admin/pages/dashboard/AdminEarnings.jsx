@@ -350,7 +350,7 @@ const AdminEarnings = () => {
     const total = cash + online || 1;
     return [
       { label: 'Cash', value: cash, percent: Math.round((cash / total) * 100), color: '#3B82F6' },
-      { label: 'Online', value: online, percent: Math.round((online / total) * 100), color: '#FFC400' }
+      { label: 'Online', value: online, percent: Math.round((online / total) * 100), color: '#e1251b' }
     ];
   }, [data.results]);
 
@@ -403,17 +403,17 @@ const AdminEarnings = () => {
       {/* 2. KPI CARDS SECTION (10 Metrics) */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 mb-8">
         {[
-          { label: "Total Commission", value: currency(totalCommission), icon: IndianRupee, cardBg: "!bg-orange-500", metric: 'commission' },
-          { label: "Gross Ride Fare", value: currency(grossFare), icon: Wallet, cardBg: "!bg-blue-500", metric: 'gross-fare' },
-          { label: "Driver Earnings", value: currency(driverEarnings), icon: TrendingUp, cardBg: "!bg-emerald-500", metric: 'driver-earnings' },
-          { label: "Net Platform Revenue", value: currency(netPlatformRevenue), icon: ShieldCheck, cardBg: "!bg-violet-500", metric: 'net-revenue' },
-          { label: "Average Commission", value: currency(averageCommission), icon: BarChart3, cardBg: "!bg-fuchsia-500", metric: 'average-commission' },
-          { label: "Cash Commission", value: currency(cashCommission), icon: UserRound, cardBg: "!bg-slate-600", metric: 'cash-commission' },
-          { label: "Online Commission", value: currency(onlineCommission), icon: Car, cardBg: "!bg-teal-500", metric: 'online-commission' },
+          { label: "Total Commission", value: currency(totalCommission), icon: IndianRupee, cardBg: "!bg-[#1c1e22]", metric: 'commission' },
+          { label: "Gross Ride Fare", value: currency(grossFare), icon: Wallet, cardBg: "!bg-[#1c1e22]", metric: 'gross-fare' },
+          { label: "Driver Earnings", value: currency(driverEarnings), icon: TrendingUp, cardBg: "!bg-[#1c1e22]", metric: 'driver-earnings' },
+          { label: "Net Platform Revenue", value: currency(netPlatformRevenue), icon: ShieldCheck, cardBg: "!bg-[#e1251b]", metric: 'net-revenue' },
+          { label: "Average Commission", value: currency(averageCommission), icon: BarChart3, cardBg: "!bg-[#1c1e22]", metric: 'average-commission' },
+          { label: "Cash Commission", value: currency(cashCommission), icon: UserRound, cardBg: "!bg-[#1c1e22]", metric: 'cash-commission' },
+          { label: "Online Commission", value: currency(onlineCommission), icon: Car, cardBg: "!bg-[#1c1e22]", metric: 'online-commission' },
           // The withdrawal requests page already lists these, with approve and pay actions.
-          { label: "Pending Settlements", value: currency(pendingSettlements), icon: Clock, cardBg: "!bg-orange-500", to: '/admin/drivers/wallet/withdrawals' },
-          { label: "Refund Amount", value: currency(refundAmount), icon: AlertTriangle, cardBg: "!bg-rose-500", metric: 'refunds' },
-          { label: "Completed Transactions", value: totalTrips, icon: CheckCircle, cardBg: "!bg-sky-500", metric: 'completed' }
+          { label: "Pending Settlements", value: currency(pendingSettlements), icon: Clock, cardBg: "!bg-[#e1251b]", to: '/admin/drivers/wallet/withdrawals' },
+          { label: "Refund Amount", value: currency(refundAmount), icon: AlertTriangle, cardBg: "!bg-[#1c1e22]", metric: 'refunds' },
+          { label: "Completed Transactions", value: totalTrips, icon: CheckCircle, cardBg: "!bg-[#1c1e22]", metric: 'completed' }
         ].map((kpi, idx) => (
           <motion.div
             key={idx}
@@ -544,7 +544,7 @@ const AdminEarnings = () => {
                 {/* Revenue Path */}
                 <path d={revenueLinePath} fill="none" stroke="#3B82F6" strokeWidth="2.5" />
                 {/* Commission Path */}
-                <path d={commissionLinePath} fill="none" stroke="#FFC400" strokeWidth="2.5" />
+                <path d={commissionLinePath} fill="none" stroke="#e1251b" strokeWidth="2.5" />
               </svg>
               <div className="flex justify-between text-[9px] text-slate-400 mt-2">
                 <span>Earliest Transaction</span>
@@ -567,7 +567,7 @@ const AdminEarnings = () => {
           <div className="flex items-center justify-center gap-6 py-2.5">
             <svg width="90" height="90" viewBox="0 0 100 100" className="transform -rotate-90">
               <circle cx="50" cy="50" r="35" fill="transparent" stroke="#3B82F6" strokeWidth="10" strokeDasharray={`${paymentMethodData[0].percent * 2.2} 220`} />
-              <circle cx="50" cy="50" r="35" fill="transparent" stroke="#FFC400" strokeWidth="10" strokeDasharray={`${paymentMethodData[1].percent * 2.2} 220`} strokeDashoffset={`-${paymentMethodData[0].percent * 2.2}`} />
+              <circle cx="50" cy="50" r="35" fill="transparent" stroke="#e1251b" strokeWidth="10" strokeDasharray={`${paymentMethodData[1].percent * 2.2} 220`} strokeDashoffset={`-${paymentMethodData[0].percent * 2.2}`} />
             </svg>
             <div className="space-y-1.5 text-[10px] font-bold">
               {paymentMethodData.map((d, i) => (

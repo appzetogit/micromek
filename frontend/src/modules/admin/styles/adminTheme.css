@@ -2,7 +2,8 @@
 
 .redigo-admin-root {
   --admin-sidebar: #05070D;
-  --admin-accent: #FFC400;
+  /* MIKROMEK brand red (was yellow #FFC400). */
+  --admin-accent: #e1251b;
   --admin-bg: #F6F8FC;
   --admin-card: #FFFFFF;
   --admin-text: #0B1220;
@@ -399,14 +400,14 @@
 
 .redigo-admin-root aside .active {
   background-color: var(--admin-accent) !important;
-  color: #05070D !important;
+  color: #ffffff !important;
   font-weight: 700 !important;
-  box-shadow: 0 1px 3px 0 rgba(255, 196, 0, 0.2) !important;
+  box-shadow: 0 6px 16px -6px rgba(225, 37, 27, 0.6) !important;
 }
 
 .redigo-admin-root aside .active svg {
   opacity: 1 !important;
-  color: #05070D !important;
+  color: #ffffff !important;
 }
 
 .redigo-admin-root aside .active span {
@@ -454,7 +455,7 @@
 
 .redigo-admin-root .admin-btn-primary {
   background-color: var(--admin-accent) !important;
-  color: #05070D !important;
+  color: #ffffff !important;
   font-weight: 500 !important;
   padding: 0.5rem 1rem !important;
   border-radius: 6px !important;

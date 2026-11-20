@@ -26,7 +26,7 @@ const Field = ({ icon: Icon, id, label, ...props }) => (
       />
       <input
         id={id}
-        className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-300 rounded-lg text-[14px] text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition"
+        className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-300 rounded-lg text-[14px] text-slate-900 placeholder:text-slate-400 outline-none focus:border-[#e1251b] focus:ring-2 focus:ring-[#e1251b]/15 transition"
         {...props}
       />
     </div>
@@ -44,7 +44,8 @@ const AdminLogin = () => {
   const [notice, setNotice] = useState('');
   const navigate = useNavigate();
 
-  const appLogo = settings.general?.logo || settings.customization?.logo;
+  // The bundled MIKROMEK logo until one is uploaded in General Settings.
+  const appLogo = settings.general?.logo || settings.customization?.logo || '/mikromek-logo.jpg';
   const appName = settings.general?.app_name || 'MIKROMEK';
 
   const switchView = (next) => {
@@ -110,7 +111,7 @@ const AdminLogin = () => {
               aria-label={`${appName} home`}
             >
               {appLogo ? (
-                <img src={appLogo} alt={appName} className="h-11 w-auto object-contain" />
+                <img src={appLogo} alt={appName} className="h-20 w-auto object-contain" />
               ) : (
                 <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-white">
                   <ShieldCheck size={22} />
@@ -179,7 +180,7 @@ const AdminLogin = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full flex items-center justify-center gap-2 rounded-lg bg-slate-900 py-2.5 text-[14px] font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+                  className="w-full flex items-center justify-center gap-2 rounded-lg bg-[#e1251b] py-2.5 text-[14px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(225,37,27,0.6)] transition hover:bg-[#c51d14] disabled:opacity-60"
                 >
                   {isLoading && <Loader2 className="animate-spin" size={16} />}
                   {isLoading ? 'Signing in…' : 'Sign in'}
@@ -211,7 +212,7 @@ const AdminLogin = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full flex items-center justify-center gap-2 rounded-lg bg-slate-900 py-2.5 text-[14px] font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+                  className="w-full flex items-center justify-center gap-2 rounded-lg bg-[#e1251b] py-2.5 text-[14px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(225,37,27,0.6)] transition hover:bg-[#c51d14] disabled:opacity-60"
                 >
                   {isLoading && <Loader2 className="animate-spin" size={16} />}
                   {isLoading ? 'Sending…' : 'Send reset link'}
