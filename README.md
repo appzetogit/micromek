@@ -86,32 +86,30 @@ the CMS serves uploaded assets — pointing them at a frontend-bundled path such
 
 | Path | Owner |
 |---|---|
-| `/`, `/about`, `/services`, `/corporate`, `/partner`, `/drive-with-us`, `/advertise`, `/contact` | landing |
-| `/faq`, `/support`, `/blog`, `/careers`, `/links`, `/terms`, `/privacy` | taxi static pages |
-| `/login`, `/signup`, `/ride/*`, `/cab/*`, `/bus/*`, `/parcel/*`, `/rental/*` | taxi user app |
+| `/`, `/services`, `/franchise`, `/drive-with-us`, `/about`, `/contact` | MIKROMEK public site (`frontend/src/modules/landing`) |
+| `/partner`, `/corporate`, `/advertise`, `/zi-bus` | redirect to the closest page above |
+| `/faq`, `/support`, `/blog`, `/careers`, `/links`, `/terms`, `/privacy` | static pages |
+| `/login`, `/signup`, `/ride/*`, `/cab/*`, `/bus/*`, `/parcel/*`, `/rental/*` | customer app |
 | `/taxi/driver/*`, `/taxi/owner/*`, `/admin/*` | driver, owner and admin apps |
 
-Landing paths live in `frontend/src/modules/landing/landingTabs.js` — the router
-and the navbar highlighting both read from it, so they cannot drift apart.
+Public site routes live in `frontend/src/modules/landing/landingTabs.js`; the router builds from it.
 
-## Two things to know before editing the landing
+## The public site
 
-**Its CSS is scoped.** Everything in `landing.css` and in each page's `<style>`
-block is nested under `.zicab-landing`, applied by `LandingShell`. Both codebases
-use names like `container`, `btn` and `section-title`, and the taxi side is
-Tailwind — unscoped landing rules would restyle the whole product. Keyframes are
-the exception: they are invalid inside a nested rule and their names are global
-either way, so they sit at the top level with a `zc-` prefix.
+**Brand** comes from the MIKROMEK logo: signal red `#e1251b`, ink and steel grey, Barlow Condensed
+capitals, the lightning bolt and the red return arrow (`components/BrandArt.jsx`).
 
-The taxi app enforces its font with `* { font-family: ... !important }`, so the
-landing's font rules carry `!important` too. Higher specificity settles it
-between them, and all of it stays inside `.zicab-landing`.
+**Its CSS is scoped.** `site.css` is nested under `.mk-site`, applied by `LandingShell`, so it can never
+restyle the Tailwind apps or the admin panel. Base element rules use `:where()` so component classes always win.
 
-**Reveals must never strand content.** Elements are visible by default and only
-hidden once `useReveal` confirms it can animate them, and a backstop writes the
-visible end state directly if the observer never fires. Keep that property — a
-throttled tab freezes the animation clock, and anything depending on a tween or
-transition completing will otherwise stay invisible.
+**Copy** is in `siteContent.js` (services, FAQ, nav). **Contact details and the logo** come from
+Admin → Website Content / General Settings; a blank field is simply not shown.
+
+**Entrance motion never hides content**: `.mk-rise` only slides, it never fades in from invisible,
+because a throttled background tab can freeze an animation on its first frame.
+
+**Forms**: Contact and Drive post to `/users/enquiry` (Admin → Website Enquiries); Franchise posts to
+`/franchise/apply`, which creates a pending franchise for approval in Admin → Franchises.
 
 ## Client-supplied values still outstanding
 

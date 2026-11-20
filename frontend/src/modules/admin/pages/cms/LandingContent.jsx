@@ -123,7 +123,7 @@ const HERO_FIELDS = [
 ];
 
 const SEO_FIELDS = [
-  { name: 'title', label: 'Browser tab title', placeholder: 'MIKROMEK - Your Ride. Our Priority.', wide: true },
+  { name: 'title', label: 'Browser tab title', placeholder: "MIKROMEK · Power Full Service, Today's Technology", wide: true },
   { name: 'description', label: 'Search description', placeholder: 'MIKROMEK - city, outstation and airport cabs...', wide: true },
 ];
 
@@ -137,7 +137,7 @@ const BRAND_FIELDS = [
   { name: 'logo', label: 'Logo', type: 'image', wide: true, help: 'Shown in the header, footer and intro screen. Leave empty to use the logo from General Settings.' },
   { name: 'wordmarkPrimary', label: 'Wordmark (first part)', placeholder: 'ZI' },
   { name: 'wordmarkSecondary', label: 'Wordmark (second part)', placeholder: 'CAB' },
-  { name: 'tagline', label: 'Tagline', placeholder: 'Your Ride. Our Priority.', wide: true },
+  { name: 'tagline', label: 'Tagline', placeholder: "Power Full Service · Today's Technology", wide: true },
   { name: 'appBlurb', label: 'App blurb', placeholder: 'Book rides in seconds...', wide: true },
   { name: 'playStoreUrl', label: 'Google Play URL', placeholder: 'https://play.google.com/store/apps/details?id=...', wide: true, help: 'Leave blank and the badge stays unclickable.' },
   { name: 'appStoreUrl', label: 'App Store URL', placeholder: 'https://apps.apple.com/app/...', wide: true },

@@ -65,19 +65,17 @@ export const LANDING_FALLBACK = {
     { name: 'Hubballi', note: 'North Karnataka Operations' },
   ],
 
+  // MIKROMEK's own details are filled in under Admin → Website Content. Left
+  // blank, a field is simply not shown (the old ZI CAB numbers were removed).
   contact: {
-    email: 'zicabofficial@gmail.com',
-    whatsapp: '918904343123',
-    whatsappDisplay: '+91 8904343123',
-    // No toll-free line yet. Every "call us" link dials this field, so it holds
-    // the business number; tollFreeLive stays false, which keeps the toll-free
-    // IVR banner on the contact page hidden until a real line exists.
-    tollFree: '+91 8904343123',
+    email: '',
+    whatsapp: '',
+    whatsappDisplay: '',
+    tollFree: '',
     tollFreeLive: false,
-    address: 'Office No 13, Grand Majestic Mall, Gandhinagar, Bengaluru - 560009',
-    addressShort: 'Office No 13, Grand Majestic Mall, Gandhinagar, Bengaluru',
-    mapsUrl:
-      'https://www.google.com/maps/search/?api=1&query=Grand+Majestic+Mall+Gandhinagar+Bengaluru',
+    address: '',
+    addressShort: '',
+    mapsUrl: '',
   },
 
   // Logo, wordmark and app-store links. The store badges were non-clickable
@@ -87,9 +85,9 @@ export const LANDING_FALLBACK = {
     // Empty: the site uses the logo from General Settings. Set this only to
     // give the website a different logo from the rest of the product.
     logo: '',
-    wordmarkPrimary: 'ZI',
-    wordmarkSecondary: 'CAB',
-    tagline: 'Your Ride. Our Priority.',
+    wordmarkPrimary: 'MIKROMEK',
+    wordmarkSecondary: '',
+    tagline: "Power Full Service · Today's Technology",
     appBlurb: 'Book rides in seconds, track drivers live, and manage invoices with the MIKROMEK app.',
     playStoreUrl: '',
     appStoreUrl: '',
@@ -131,9 +129,9 @@ export const LANDING_FALLBACK = {
   },
 
   seo: {
-    title: 'MIKROMEK - Your Ride. Our Priority.',
+    title: "MIKROMEK · Power Full Service, Today's Technology",
     description:
-      'MIKROMEK - city, outstation and airport cabs with verified drivers and 24x7 support. Now live in Bengaluru, Mangaluru and Hubballi.',
+      'Taxi rides, porter goods transport, EV fleet monitoring, online shopping and city franchises on one MIKROMEK platform.',
   },
 
   about: {

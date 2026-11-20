@@ -113,7 +113,7 @@ const BusHomeDesktop = ({
             <img src={logo} alt="" />
             <span>
               <strong>ZI <em>CAB</em></strong>
-              <small>Your Ride. Our Priority.</small>
+              <small>Power Full Service</small>
             </span>
           </Link>
           <nav className="zbd-links" aria-label="Main">

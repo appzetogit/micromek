@@ -1,23 +1,19 @@
 /**
- * Single source of truth for the marketing routes, so the router and the navbar
- * highlighting can never drift apart.
- *
- * `id` is the tab name the landing pages already speak; `path` is the URL.
- * Lives in its own module rather than in LandingShell so that file only exports
- * a component (fast refresh requirement).
+ * Public site routes. The router builds from this list, and old marketing URLs
+ * redirect to their closest new page so existing links keep working.
  */
 export const LANDING_TABS = [
   { id: 'home', path: '/' },
-  { id: 'about', path: '/about' },
   { id: 'services', path: '/services' },
-  { id: 'bus', path: '/zi-bus' },
-  { id: 'corporate', path: '/corporate' },
-  { id: 'partner', path: '/partner' },
+  { id: 'franchise', path: '/franchise' },
   { id: 'driver', path: '/drive-with-us' },
-  { id: 'advertise', path: '/advertise' },
+  { id: 'about', path: '/about' },
   { id: 'contact', path: '/contact' },
 ];
 
-export const pathForTab = (id) => LANDING_TABS.find((t) => t.id === id)?.path ?? '/';
-
-export const tabForPath = (path) => LANDING_TABS.find((t) => t.path === path)?.id ?? 'home';
+export const LANDING_REDIRECTS = [
+  { from: '/partner', to: '/franchise' },
+  { from: '/corporate', to: '/contact' },
+  { from: '/advertise', to: '/contact' },
+  { from: '/zi-bus', to: '/services' },
+];
