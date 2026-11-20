@@ -28,7 +28,7 @@ export const createDefaultThirdPartySettings = () => {
       mail_password: '',
       mail_encryption: 'tls',
       mail_from_address: 'noreply@zicab.in',
-      mail_from_name: 'Zi Cab',
+      mail_from_name: 'Mikromek',
     },
     sms: {
       firebase: { enabled: '1' },

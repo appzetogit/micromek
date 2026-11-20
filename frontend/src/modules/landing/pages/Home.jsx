@@ -169,9 +169,9 @@ const fallbackVehicles = [
   // All page content comes from the CMS, falling back to the bundled copy so the
   // page is never blank while the request is in flight or if it fails.
   const { services, valueProps, drivers, partners, launchCities, contact, brand, hero } = useLanding();
-  // The site's name, from the brand wordmark in the website content ("ZI CAB" by default).
-  const brandName = [brand.wordmarkPrimary, brand.wordmarkSecondary].filter(Boolean).join(' ') || 'ZI CAB';
-  // The app's own module list is the source of truth for what ZI CAB sells;
+  // The site's name, from the brand wordmark in the website content ("MIKROMEK" by default).
+  const brandName = [brand.wordmarkPrimary, brand.wordmarkSecondary].filter(Boolean).join(' ') || 'MIKROMEK';
+  // The app's own module list is the source of truth for what MIKROMEK sells;
   // the CMS list is only a fallback for when it cannot be reached.
   const appModules = useAppModules();
   const serviceCards = appModules.length ? appModules : services;
@@ -376,7 +376,7 @@ const fallbackVehicles = [
         </div>
       </section>
 
-      {/* WHY CHOOSE ZI CAB? SECTION */}
+      {/* WHY CHOOSE MIKROMEK? SECTION */}
       <section className="why-us-section grain-layer">
         <div className="container">
           <div className="why-head">

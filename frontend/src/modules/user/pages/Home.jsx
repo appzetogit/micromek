@@ -248,7 +248,7 @@ const defaultSettings = {
     { id: '4', title: 'Bike', image: '', route: '/taxi/user/ride/select-location', order: 4, status: 'active' }
   ],
   promos: [
-    { id: '1', title: 'Experience A New Standard With Appzeto ', subtitle: 'A premier private hire service where luxury and reliability converge.', image: '', route: '/taxi/user/ride/select-location', order: 1, status: 'active' },
+    { id: '1', title: 'Experience A New Standard With Mikromek ', subtitle: 'A premier private hire service where luxury and reliability converge.', image: '', route: '/taxi/user/ride/select-location', order: 1, status: 'active' },
     { id: '2', title: 'Need to Send Packages? Try Parcel!', subtitle: 'Fast and secure delivery across Indore at affordable prices.', image: '', route: '/taxi/user/parcel/type', order: 2, status: 'active' }
   ],
   goPlaces: [
@@ -257,7 +257,7 @@ const defaultSettings = {
     { id: '3', title: 'Ride to Bus Terminal', image: '', route: '/taxi/user/ride/select-location', order: 3, status: 'active' }
   ],
   footer: {
-    hashtag: '#goAppzeto 24',
+    hashtag: '#goMikromek',
     line1: 'Made for India',
     line2: 'Crafted for riders'
   }
@@ -420,7 +420,7 @@ const RecentLocationsList = ({ routePrefix }) => {
 
   const [recentLocations, setRecentLocations] = useState(() => {
     try {
-      const saved = window.localStorage.getItem('Appzeto 24:recentLocations');
+      const saved = window.localStorage.getItem('Mikromek:recentLocations');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -456,7 +456,7 @@ const RecentLocationsList = ({ routePrefix }) => {
 
   const getSavedLocationCoords = () => {
     try {
-      const saved = JSON.parse(window.localStorage.getItem('Appzeto 24:lastLocation') || '{}');
+      const saved = JSON.parse(window.localStorage.getItem('Mikromek:lastLocation') || '{}');
       const lat = Number(saved?.lat);
       const lon = Number(saved?.lon);
       if (Number.isFinite(lat) && Number.isFinite(lon)) {
@@ -469,7 +469,7 @@ const RecentLocationsList = ({ routePrefix }) => {
   useEffect(() => {
     const handleRefresh = () => {
       try {
-        const saved = window.localStorage.getItem('Appzeto 24:recentLocations');
+        const saved = window.localStorage.getItem('Mikromek:recentLocations');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -479,10 +479,10 @@ const RecentLocationsList = ({ routePrefix }) => {
       } catch (e) { }
     };
     window.addEventListener('storage', handleRefresh);
-    window.addEventListener('Appzeto 24:recent-locations-updated', handleRefresh);
+    window.addEventListener('Mikromek:recent-locations-updated', handleRefresh);
     return () => {
       window.removeEventListener('storage', handleRefresh);
-      window.removeEventListener('Appzeto 24:recent-locations-updated', handleRefresh);
+      window.removeEventListener('Mikromek:recent-locations-updated', handleRefresh);
     };
   }, []);
 
@@ -547,7 +547,7 @@ const RecentLocationsList = ({ routePrefix }) => {
                   return loc;
                 });
                 setRecentLocations(updated);
-                localStorage.setItem('Appzeto 24:recentLocations', JSON.stringify(updated));
+                localStorage.setItem('Mikromek:recentLocations', JSON.stringify(updated));
               }}
               className={`hover:text-rose-500 transition-colors px-1 shrink-0 ${item.favourite ? 'text-rose-500' : 'text-slate-400'
                 }`}
@@ -576,7 +576,7 @@ const Home = () => {
       if (settings?.userHomeSettings && Object.keys(settings.userHomeSettings).length > 0) {
         return settings.userHomeSettings;
       }
-      const saved = window.localStorage.getItem('Appzeto 24:admin:user-app-settings');
+      const saved = window.localStorage.getItem('Mikromek:admin:user-app-settings');
       if (saved) return JSON.parse(saved);
     } catch (e) {
       console.error(e);
@@ -598,7 +598,7 @@ const Home = () => {
   useEffect(() => {
     const handleStorageChange = () => {
       try {
-        const saved = window.localStorage.getItem('Appzeto 24:admin:user-app-settings');
+        const saved = window.localStorage.getItem('Mikromek:admin:user-app-settings');
         if (saved) {
           const parsed = JSON.parse(saved);
           setUiSettings(prev => {
@@ -632,7 +632,7 @@ const Home = () => {
   const [activeServices, setActiveServices] = useState([]);
   const [pickupAddress, setPickupAddress] = useState(() => {
     try {
-      const saved = JSON.parse(window.localStorage.getItem('Appzeto 24:lastLocation') || '{}');
+      const saved = JSON.parse(window.localStorage.getItem('Mikromek:lastLocation') || '{}');
       return String(saved?.address || '').trim() || 'Indore, Madhya Pradesh';
     } catch (e) {
       return 'Indore, Madhya Pradesh';
@@ -640,7 +640,7 @@ const Home = () => {
   });
   const [isLocationLoading, setIsLocationLoading] = useState(() => {
     try {
-      const saved = JSON.parse(window.localStorage.getItem('Appzeto 24:lastLocation') || '{}');
+      const saved = JSON.parse(window.localStorage.getItem('Mikromek:lastLocation') || '{}');
       return !saved?.address;
     } catch {
       return true;
@@ -650,18 +650,18 @@ const Home = () => {
   useEffect(() => {
     const handleLocationUpdate = () => {
       try {
-        const saved = JSON.parse(window.localStorage.getItem('Appzeto 24:lastLocation') || '{}');
+        const saved = JSON.parse(window.localStorage.getItem('Mikromek:lastLocation') || '{}');
         setPickupAddress(String(saved?.address || '').trim() || 'Indore, Madhya Pradesh');
       } catch (e) { }
     };
     const handleLocationStatus = (e) => {
       setIsLocationLoading(e.detail === 'loading');
     };
-    window.addEventListener('Appzeto 24:location-updated', handleLocationUpdate);
-    window.addEventListener('Appzeto 24:location-status', handleLocationStatus);
+    window.addEventListener('Mikromek:location-updated', handleLocationUpdate);
+    window.addEventListener('Mikromek:location-status', handleLocationStatus);
     return () => {
-      window.removeEventListener('Appzeto 24:location-updated', handleLocationUpdate);
-      window.removeEventListener('Appzeto 24:location-status', handleLocationStatus);
+      window.removeEventListener('Mikromek:location-updated', handleLocationUpdate);
+      window.removeEventListener('Mikromek:location-status', handleLocationStatus);
     };
   }, []);
 
@@ -1943,7 +1943,7 @@ const Home = () => {
                 Appzeto
               </div>
               <div className="mt-2 text-[14px] font-sans italic font-bold tracking-[0.04em] text-slate-800 dark:text-slate-200">
-                #goAppzeto 24
+                #goMikromek
               </div>
               <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
                 Made for India, Crafted for riders.

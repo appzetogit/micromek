@@ -5,7 +5,7 @@ export const SHIPPING_PROVIDERS = Object.freeze(['local_porter', 'shiprocket', '
 
 const shipmentSchema = new mongoose.Schema(
   {
-    order_id: { type: mongoose.Schema.Types.ObjectId, ref: 'CommerceOrder', required: true, index: true },
+    order_id: { type: mongoose.Schema.Types.ObjectId, ref: 'CommerceOrder', required: true }, // indexed by the unique (order_id, active) index below
     store_id: { type: mongoose.Schema.Types.ObjectId, ref: 'CommerceStore', required: true, index: true },
     franchise_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Franchise', default: null },
     provider: { type: String, enum: SHIPPING_PROVIDERS, required: true },

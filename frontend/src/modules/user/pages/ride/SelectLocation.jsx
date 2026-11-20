@@ -164,7 +164,7 @@ const findMatchingZone = (coords, zones = []) => {
 const saveRecentLocation = (address, coords) => {
   if (!address || address.trim().length === 0) return;
   try {
-    const key = 'Appzeto 24:recentLocations';
+    const key = 'Mikromek:recentLocations';
     let list = [];
     const saved = localStorage.getItem(key);
     if (saved) {
@@ -183,7 +183,7 @@ const saveRecentLocation = (address, coords) => {
     list = list.slice(0, 5);
     localStorage.setItem(key, JSON.stringify(list));
     window.dispatchEvent(new Event('storage'));
-    window.dispatchEvent(new Event('Appzeto 24:recent-locations-updated'));
+    window.dispatchEvent(new Event('Mikromek:recent-locations-updated'));
   } catch (e) {
     console.error('Error saving recent location:', e);
   }

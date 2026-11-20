@@ -1344,7 +1344,7 @@ const AdminLayout = () => {
                   className="flex flex-col"
                 >
                   <h3 className="text-sm font-bold leading-tight text-slate-900 tracking-tight">
-                    {mode === OWNER_MODE ? 'Owner Panel' : appName || 'APPZETO'}
+                    {mode === OWNER_MODE ? 'Owner Panel' : appName || 'MIKROMEK'}
                   </h3>
                   <div className="mt-0.5 flex items-center gap-1.5">
                     <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">

@@ -62,7 +62,7 @@ const Signup = () => {
   const [otpSending, setOtpSending] = useState(false);
   const fileInputRef = useRef(null);
 
-  const appName = settings.general?.app_name || 'Appzeto 24';
+  const appName = settings.general?.app_name || 'Mikromek';
   const appLogo = settings.general?.logo || settings.customization?.logo || settings.general?.favicon || '';
 
   const isValidPhone = /^\d{10}$/.test(formData.phone);

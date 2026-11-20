@@ -21,7 +21,7 @@ const legalContent = {
     title: 'Terms & Conditions',
     icon: ScrollText,
     intro:
-      'These terms apply to everyone who uses ZI CAB - riders booking rides and parcel deliveries, and drivers and vehicle owners providing them.',
+      'These terms apply to everyone who uses MIKROMEK - riders booking rides and parcel deliveries, and drivers and vehicle owners providing them.',
     rawText: termsRawText,
   },
   privacy: {
@@ -29,7 +29,7 @@ const legalContent = {
     title: 'Privacy Policy',
     icon: ShieldCheck,
     intro:
-      'How ZI CAB collects, uses, shares, stores and protects the information of riders, drivers and website visitors.',
+      'How MIKROMEK collects, uses, shares, stores and protects the information of riders, drivers and website visitors.',
     rawText: privacyRawText,
   },
   refund: {
@@ -37,7 +37,7 @@ const legalContent = {
     title: 'Refund & Cancellation Policy',
     icon: ReceiptText,
     intro:
-      'This page explains refund eligibility, cancellation timelines, and indicative prices for the main vehicle types available on the Zicab Group Private Limited platform. Refunds are reviewed based on service status, time of cancellation, and payment mode.',
+      'This page explains refund eligibility, cancellation timelines, and indicative prices for the main vehicle types available on the Mikromek Group Private Limited platform. Refunds are reviewed based on service status, time of cancellation, and payment mode.',
     sections: [
       {
         title: 'When refunds may be approved',
@@ -51,7 +51,7 @@ const legalContent = {
       {
         title: 'Refund policy overview',
         body:
-          'Zicab Group Private Limited reviews refund requests on a case-by-case basis to confirm whether the booking was completed, cancelled before service, cancelled after dispatch, or affected by a technical or payment issue. Approved refunds are returned only after internal verification of ride logs, payment status, and service records.',
+          'Mikromek Group Private Limited reviews refund requests on a case-by-case basis to confirm whether the booking was completed, cancelled before service, cancelled after dispatch, or affected by a technical or payment issue. Approved refunds are returned only after internal verification of ride logs, payment status, and service records.',
       },
       {
         title: 'Cancellation rules',
@@ -100,7 +100,7 @@ const legalContent = {
         bullets: [
           'Raise the issue through the support team with your booking ID, payment details, and reason for the request.',
           'Submit the request as early as possible after the cancelled or affected booking.',
-          'Zicab Group Private Limited may ask for screenshots, transaction references, or additional verification before approval.',
+          'Mikromek Group Private Limited may ask for screenshots, transaction references, or additional verification before approval.',
         ],
       },
       {
@@ -119,7 +119,7 @@ const legalContent = {
     title: 'Cancellation Policy',
     icon: Scale,
     intro:
-      'This page summarizes how cancellations are handled across Zicab Group Private Limited booking categories.',
+      'This page summarizes how cancellations are handled across Mikromek Group Private Limited booking categories.',
     sections: [
       {
         title: 'General policy',
@@ -138,13 +138,13 @@ const legalContent = {
     title: 'Delete Your Account and Data',
     icon: Trash2,
     intro:
-      'You can ask ZI CAB to delete your account and the personal information linked to it at any time. This applies to riders, drivers, vehicle owners and bus partners.',
+      'You can ask MIKROMEK to delete your account and the personal information linked to it at any time. This applies to riders, drivers, vehicle owners and bus partners.',
     sections: [
       {
         title: 'Delete from the app',
         bullets: [
-          'Riders: open the ZI CAB app, go to Profile, tap Delete Account and confirm.',
-          'Drivers and vehicle owners: open the ZI CAB Driver app or your partner panel on zicab.in, go to your profile and choose Delete Account.',
+          'Riders: open the MIKROMEK app, go to Profile, tap Delete Account and confirm.',
+          'Drivers and vehicle owners: open the MIKROMEK Driver app or your partner panel on zicab.in, go to your profile and choose Delete Account.',
         ],
       },
       {
@@ -161,7 +161,7 @@ const legalContent = {
           'Your profile, contact details, saved places and app login are removed.',
           'Trip, payment and tax records are kept only for the period the law requires, and for resolving disputes and preventing fraud.',
           'Driver verification documents are kept for the period required by law after the account is closed.',
-          'If you signed in with Facebook, deleting your ZI CAB account also removes the information we received from Facebook.',
+          'If you signed in with Facebook, deleting your MIKROMEK account also removes the information we received from Facebook.',
         ],
       },
     ],
