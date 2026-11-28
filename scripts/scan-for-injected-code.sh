@@ -97,6 +97,10 @@ search "payload marker global.i = 'A8-...'"                       -E "global\.i 
 search "obfuscated payload signature _0x4925"                     -F "_0x4925"
 TABS=$(printf '\t%.0s' $(seq 1 50))
 search "50+ consecutive tabs - how appended code is pushed off-screen" -F "$TABS"
+# The 20 Nov injection padded with spaces instead (Backend/init, frontend/init),
+# which the tab check never saw. A long blank run followed by more code on the
+# same line is the same trick. 200 stays under the 255 repeat limit of ERE.
+search "200+ spaces or tabs then more code on one line - code pushed off-screen" -E "[[:blank:]]{200,}[^[:blank:]]"
 
 # Path checks, from the file list alone.
 printf '%s\n' "$LIST" | grep -i 'fa-solid-500' | while IFS= read -r f; do
@@ -115,7 +119,9 @@ done
 
 # A script whose source is one enormous line. Hand-written code never looks
 # like that; the 10 Oct payload (Backend/api.js, 29 KB on a single line) did.
-printf '%s\n' "$LIST" | grep -E '\.(c|m)?js$' | grep -vE '(^|/)(node_modules|dist|build|vendor)/|\.min\.js$' | while IFS= read -r f; do
+# Any file that can run is checked, including ones with no extension: the
+# 20 Nov payload was named plain "init" and slipped past a .js-only check.
+printf '%s\n' "$LIST" | grep -E '\.((c|m)?jsx?|tsx?|sh|bat|cmd|ps1|py)$|(^|/)[^./]+$' | grep -vE '(^|/)(node_modules|dist|build|vendor)/|\.min\.js$|(^|/)(LICENSE|README|Dockerfile|Makefile|Procfile)$' | while IFS= read -r f; do
   [ -n "$f" ] || continue
   if scoped_cat "$f" | awk 'length > 5000 { found = 1; exit } END { exit !found }'; then
     say "$f: a line over 5000 characters - how obfuscated payloads look"
@@ -127,8 +133,13 @@ done
 # executed it first.
 printf '%s\n' "$LIST" | grep -E '(^|/)package\.json$' | while IFS= read -r f; do
   [ -n "$f" ] || continue
-  if scoped_cat "$f" | grep -E '"(start|dev|prestart|predev|postinstall|preinstall|install)" *:' | grep -qE 'node +[^ "]+\.(c|m)?js *&&'; then
+  if scoped_cat "$f" | grep -E '"(start|dev|build|prestart|predev|prebuild|postinstall|preinstall|install|prepare)" *:' | grep -qE 'node +[^ "&]+ *&&'; then
     say "$f: an npm script runs another file before the app - the payload's launcher"
+  fi
+  # 20 Nov: "build": "node init && vite build". Nothing legitimate runs a
+  # file with no extension through node, in any npm script.
+  if scoped_cat "$f" | grep -E '^ *"[^"]+" *: *"' | grep -qE '(^|[^-[:alnum:]_.])node +(\./)?[^- "&./][^ "&./]*( |"|&)'; then
+    say "$f: an npm script runs a file with no extension through node - the 20 Nov launcher"
   fi
 done
 
@@ -162,14 +173,14 @@ fi
 
 # The payload's tooling is never committed - it lives on the infected machine.
 # Always checked on disk: finding it means this machine has run the payload.
-for f in temp_auto_push.bat temp_interactive_push.bat branch_structure.json; do
+for f in temp_auto_push.bat temp_interactive_push.bat branch_structure.json config.bat; do
   [ -e "$f" ] && say "$f: present on this machine - the payload's own push tooling"
 done
 
 # .gitignore at the scanned scope.
 GITIGNORE=$(scoped_cat .gitignore)
 if [ -n "$GITIGNORE" ]; then
-  for p in temp_auto_push temp_interactive_push branch_structure; do
+  for p in temp_auto_push temp_interactive_push branch_structure 'config\.bat'; do
     printf '%s\n' "$GITIGNORE" | grep -q "$p" && say ".gitignore hides '$p' - added by the payload to stay invisible"
   done
   printf '%s\n' "$GITIGNORE" | grep -qx '\.gitignore' && say ".gitignore ignores itself - added by the payload to hide its own edits"
